@@ -8,7 +8,8 @@ import {
   Search, Filter, Upload, Hexagon, FileText, AlertTriangle,
   Droplets, Mountain, Navigation, Download, Printer, Loader2,
   ChevronDown, Building, Database, Cpu, Globe, Clock, Plus,
-  Eye, EyeOff, Edit, Save, X, Coins, FileSpreadsheet
+  Eye, EyeOff, Edit, Save, X, Coins, FileSpreadsheet, LandPlot, Scale,
+  Home, Tent
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -159,49 +160,106 @@ const TEMP_DATA = [
 
 // --- FINANCIAL & MATH HELPERS ---
 
+type ScenarioType = 'solar' | 'glamping' | 'construction';
+
 // Funzione per calcolare il business plan simulato
-const calculateFinancials = (irradiance: number, sizeSqm: number = 5000) => {
-  // Assunzioni: 40% copertura pannelli, 15% efficienza, 1 kWp occupa ~6mq
-  const usableArea = sizeSqm * 0.4;
-  const systemSizeKw = Math.floor(usableArea / 6); 
+const calculateFinancials = (irradiance: number, sizeSqm: number = 5000, scenario: ScenarioType = 'solar') => {
   
-  // Produzione: Irraggiamento * Performance Ratio (0.8)
-  const annualProductionKwh = systemSizeKw * (irradiance / 1000) * 1200; 
-  
-  // Economici
-  const capex = systemSizeKw * 1100; // 1100€ al kW installato
-  const energyPrice = 0.09; // Prezzo vendita energia €/kWh
-  const annualRevenue = annualProductionKwh * energyPrice;
-  const opex = capex * 0.02; // Manutenzione 2% anno
-  
+  let capex = 0;
+  let annualRevenue = 0;
+  let label1 = '';
+  let label2 = '';
   const cashFlow = [];
-  let cumulative = -capex;
-  
-  for(let i = 1; i <= 20; i++) {
-    // Degrado pannelli 0.5% annuo
-    const yearlyProd = annualProductionKwh * (1 - (i * 0.005));
-    const yearlyRev = yearlyProd * energyPrice;
-    const net = yearlyRev - opex;
-    cumulative += net;
+
+  if (scenario === 'solar') {
+    // SCENARIO: AGRI-VOLTAICO
+    label1 = 'Potenza (kWp)';
+    label2 = 'Ricavo Energia';
+    const usableArea = sizeSqm * 0.4;
+    const systemSizeKw = Math.floor(usableArea / 6); 
+    const annualProductionKwh = systemSizeKw * (irradiance / 1000) * 1200; 
+    capex = systemSizeKw * 1100; 
+    const energyPrice = 0.09; 
+    annualRevenue = annualProductionKwh * energyPrice;
+    const opex = capex * 0.02;
+    let cumulative = -capex;
+    for(let i = 1; i <= 20; i++) {
+      const yearlyProd = annualProductionKwh * (1 - (i * 0.005));
+      const yearlyRev = yearlyProd * energyPrice;
+      const net = yearlyRev - opex;
+      cumulative += net;
+      cashFlow.push({ year: `Y${i}`, net: Math.round(cumulative), cash: Math.round(net) });
+    }
+    const roi = ((cumulative / capex) * 100).toFixed(1);
+    const paybackYear = cashFlow.find(c => c.net > 0)?.year || 'N/A';
+    return { mainMetric: systemSizeKw, metricLabel: label1, capex: Math.round(capex), annualRevenue: Math.round(annualRevenue), roi, paybackYear, cashFlow };
+
+  } else if (scenario === 'glamping') {
+    // SCENARIO: GLAMPING / TURISMO
+    label1 = 'Unità (Tende)';
+    label2 = 'Fatturato Booking';
+    const units = Math.floor(sizeSqm / 1000); // 1 tenda ogni 1000mq per privacy
+    const occupancyRate = 0.45; // 45% occupazione annua
+    const pricePerNight = 120;
+    const revenuePerUnit = pricePerNight * 365 * occupancyRate;
     
-    cashFlow.push({
-      year: `Y${i}`,
-      net: Math.round(cumulative),
-      cash: Math.round(net)
-    });
+    capex = units * 35000; // Costo allestimento unità + servizi
+    annualRevenue = units * revenuePerUnit;
+    const opex = annualRevenue * 0.40; // 40% costi gestione (pulizie, marketing)
+    let cumulative = -capex;
+    for(let i = 1; i <= 20; i++) {
+      const yearlyRev = annualRevenue * (1 + (i * 0.02)); // Inflazione prezzi 2%
+      const net = yearlyRev - opex;
+      cumulative += net;
+      cashFlow.push({ year: `Y${i}`, net: Math.round(cumulative), cash: Math.round(net) });
+    }
+    const roi = ((cumulative / capex) * 100).toFixed(1);
+    const paybackYear = cashFlow.find(c => c.net > 0)?.year || 'N/A';
+    return { mainMetric: units, metricLabel: label1, capex: Math.round(capex), annualRevenue: Math.round(annualRevenue), roi, paybackYear, cashFlow };
+
+  } else {
+    // SCENARIO: COSTRUZIONE RESIDENZIALE
+    label1 = 'Sup. Edificabile (mq)';
+    label2 = 'Valore Immobile';
+    
+    // Assumiamo un indice di edificabilità medio-basso se non specificato (es. agricolo residenziale o espansione)
+    // In un'app reale questo verrebbe dai dati urbanistici
+    const buildabilityIndex = 0.15; // 0.15 mq/mq
+    const buildableSqm = Math.floor(sizeSqm * buildabilityIndex);
+    
+    const constructionCostPerSqm = 1800; // Costo costruzione qualità media
+    capex = buildableSqm * constructionCostPerSqm; // Costo totale operazione
+    
+    const marketValuePerSqm = 2900; // Valore vendita finito
+    const totalMarketValue = buildableSqm * marketValuePerSqm;
+    annualRevenue = totalMarketValue; // Qui inteso come Exit Value
+    
+    // Cashflow per costruzione è diverso: Uscita Y1-Y2, Entrata Y3 (Vendita)
+    let cumulative = 0;
+    for(let i = 1; i <= 5; i++) {
+      let net = 0;
+      if (i === 1) { net = -capex * 0.4; } // Acquisto + Progetto
+      else if (i === 2) { net = -capex * 0.6; } // Costruzione
+      else if (i === 3) { net = totalMarketValue; } // Vendita
+      else { net = 0; }
+      
+      cumulative += net;
+      cashFlow.push({ year: `Y${i}`, net: Math.round(cumulative), cash: Math.round(net) });
+    }
+     // ROI Sviluppatore
+    const profit = totalMarketValue - capex;
+    const roi = ((profit / capex) * 100).toFixed(1);
+    
+    return { 
+      mainMetric: buildableSqm, 
+      metricLabel: label1, 
+      capex: Math.round(capex), 
+      annualRevenue: Math.round(totalMarketValue), // Mostra valore finale
+      roi, 
+      paybackYear: 'Y3', 
+      cashFlow 
+    };
   }
-
-  const roi = ((cumulative / capex) * 100).toFixed(1);
-  const paybackYear = cashFlow.find(c => c.net > 0)?.year || 'N/A';
-
-  return {
-    systemSizeKw,
-    capex: Math.round(capex),
-    annualRevenue: Math.round(annualRevenue),
-    roi,
-    paybackYear,
-    cashFlow
-  };
 };
 
 
@@ -946,6 +1004,7 @@ const AnalysisPage = () => {
   const [isPremiumUnlocked, setIsPremiumUnlocked] = useState(false);
   const [unlocking, setUnlocking] = useState(false);
   const [financialData, setFinancialData] = useState<any>(null);
+  const [scenario, setScenario] = useState<ScenarioType>('solar');
 
   const scanPhases = [
     "Connessione a OpenStreetMap Geocoding...",
@@ -1014,8 +1073,8 @@ const AnalysisPage = () => {
       await new Promise(r => setTimeout(r, 600));
       estimatedIrradiance = Math.floor(1200 + (1000 * (1 - Math.abs(lat - 45) / 90)));
       
-      // Calculate Financials for Premium Section
-      const financials = calculateFinancials(estimatedIrradiance, 10000); // Default 10k mq for demo
+      // Initial Financials (Solar default)
+      const financials = calculateFinancials(estimatedIrradiance, 10000, 'solar'); 
       setFinancialData(financials);
 
       setScanPhase(4);
@@ -1087,6 +1146,15 @@ const AnalysisPage = () => {
       setStep('result'); 
     }
   };
+
+  // Recalculate when scenario changes
+  useEffect(() => {
+    if (report && report.data.solar.irradiance) {
+       const financials = calculateFinancials(report.data.solar.irradiance, 10000, scenario);
+       setFinancialData(financials);
+    }
+  }, [scenario, report]);
+
 
   const handleUnlock = () => {
     setUnlocking(true);
@@ -1457,26 +1525,30 @@ const AnalysisPage = () => {
         </div>
 
         {/* PREMIUM SECTION (Business Plan & Exports) */}
-        <div className="relative overflow-hidden rounded-3xl border border-amber-500/30 bg-gradient-to-b from-amber-900/10 to-black mt-16">
+        <div className="relative overflow-hidden rounded-3xl border border-primary-500/30 bg-gradient-to-b from-primary-900/10 to-black mt-16">
            {!isPremiumUnlocked && (
               <div className="absolute inset-0 z-20 backdrop-blur-md bg-black/60 flex flex-col items-center justify-center text-center p-6">
-                 <div className="w-20 h-20 bg-amber-500/20 rounded-full flex items-center justify-center mb-6 border border-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.3)]">
-                    <Lock className="w-10 h-10 text-amber-500" />
+                 <div className="w-20 h-20 bg-primary-500/20 rounded-full flex items-center justify-center mb-6 border border-primary-500/50 shadow-[0_0_30px_rgba(34,197,94,0.3)]">
+                    <Lock className="w-10 h-10 text-primary-500" />
                  </div>
                  <h3 className="text-3xl font-display font-bold text-white mb-4">Business Plan & Strategia</h3>
                  <p className="text-gray-300 max-w-md mb-8">
-                    Sblocca l'analisi finanziaria completa, il calcolo del ROI Fotovoltaico a 20 anni e scarica i file DXF per il tuo architetto.
+                    Sblocca l'analisi finanziaria completa per Energy, Turismo o Edilizia.
+                    Scarica i file DXF per il tuo architetto.
                  </p>
                  <div className="flex flex-col sm:flex-row gap-4">
                     <button 
                       onClick={handleUnlock}
-                      className="bg-amber-500 hover:bg-amber-600 text-black font-bold px-8 py-4 rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-amber-500/20 hover:scale-105"
+                      className="bg-primary-500 hover:bg-primary-600 text-black font-bold px-8 py-4 rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-primary-500/20 hover:scale-105"
                       disabled={unlocking}
                     >
                       {unlocking ? <Loader2 className="w-5 h-5 animate-spin"/> : <Unlock className="w-5 h-5" />}
                       {unlocking ? "Sblocco in corso..." : "Sblocca Report Pro - €49"}
                     </button>
-                    <button className="bg-white/5 hover:bg-white/10 text-white border border-white/10 px-8 py-4 rounded-xl font-medium">
+                    <button 
+                      onClick={handleUnlock}
+                      className="bg-white/5 hover:bg-white/10 text-white border border-white/10 px-8 py-4 rounded-xl font-medium transition-colors"
+                    >
                        Vedi Esempio
                     </button>
                  </div>
@@ -1484,9 +1556,65 @@ const AnalysisPage = () => {
            )}
 
            <div className={`p-8 lg:p-12 ${!isPremiumUnlocked ? 'opacity-30 pointer-events-none' : ''}`}>
-               <div className="flex items-center gap-3 mb-8">
-                  <Coins className="w-8 h-8 text-amber-500" />
-                  <h2 className="text-3xl font-bold text-white font-display">Business Plan Fotovoltaico (20Y)</h2>
+               
+               {/* HEADER PREMIUM */}
+               <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-10 gap-6 border-b border-white/10 pb-6">
+                  <div>
+                      <div className="flex items-center gap-3 mb-2">
+                          <Coins className="w-8 h-8 text-primary-500" />
+                          <h2 className="text-3xl font-bold text-white font-display">Business Plan & ROI</h2>
+                      </div>
+                      <p className="text-gray-400 text-sm">Scegli lo scenario di sviluppo per il tuo terreno:</p>
+                  </div>
+                  
+                  {/* SCENARIO SELECTOR */}
+                  <div className="flex bg-black/40 p-1 rounded-xl border border-white/10">
+                      <button 
+                         onClick={() => setScenario('solar')}
+                         className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all ${scenario === 'solar' ? 'bg-primary-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
+                      >
+                         <Sun className="w-4 h-4" /> Agri-Voltaico
+                      </button>
+                      <button 
+                         onClick={() => setScenario('glamping')}
+                         className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all ${scenario === 'glamping' ? 'bg-primary-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
+                      >
+                         <Tent className="w-4 h-4" /> Glamping
+                      </button>
+                      <button 
+                         onClick={() => setScenario('construction')}
+                         className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all ${scenario === 'construction' ? 'bg-primary-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
+                      >
+                         <Home className="w-4 h-4" /> Residenziale
+                      </button>
+                  </div>
+               </div>
+               
+               {/* NEW SECTION: CHECK VINCOLISTICO */}
+               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
+                  <div className="bg-white/5 border border-white/10 p-5 rounded-xl flex items-center justify-between">
+                      <div>
+                         <div className="text-xs text-gray-400 uppercase tracking-wider mb-1">Vincolo Paesaggistico</div>
+                         <div className="text-white font-bold text-lg">Assente (PPTR)</div>
+                      </div>
+                      <div className="w-3 h-3 rounded-full bg-green-500 shadow-[0_0_10px_#22c55e]"></div>
+                  </div>
+                  <div className="bg-white/5 border border-white/10 p-5 rounded-xl flex items-center justify-between">
+                      <div>
+                         <div className="text-xs text-gray-400 uppercase tracking-wider mb-1">Vincolo Idrogeologico</div>
+                         <div className="text-white font-bold text-lg">Classe P1 (Basso)</div>
+                      </div>
+                      <div className="w-3 h-3 rounded-full bg-yellow-500 shadow-[0_0_10px_#eab308]"></div>
+                  </div>
+                  <div className="bg-white/5 border border-white/10 p-5 rounded-xl flex items-center justify-between">
+                      <div>
+                         <div className="text-xs text-gray-400 uppercase tracking-wider mb-1">Indice Edificabilità</div>
+                         <div className="text-white font-bold text-lg">
+                            {scenario === 'construction' ? '0.15 mq/mq' : '0.03 mc/mq'}
+                         </div>
+                      </div>
+                      <div className="w-3 h-3 rounded-full bg-green-500 shadow-[0_0_10px_#22c55e]"></div>
+                  </div>
                </div>
 
                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
@@ -1494,26 +1622,30 @@ const AnalysisPage = () => {
                   <div className="space-y-4">
                      <div className="glass-panel p-6 rounded-2xl border border-white/5">
                         <div className="text-gray-400 text-sm mb-1">ROI Stimato</div>
-                        <div className="text-3xl font-bold text-green-500">{financialData?.roi}%</div>
-                        <div className="text-xs text-gray-500 mt-2">Ritorno investimento 20 anni</div>
+                        <div className="text-3xl font-bold text-primary-500">{financialData?.roi}%</div>
+                        <div className="text-xs text-gray-500 mt-2">Ritorno investimento</div>
                      </div>
                      <div className="glass-panel p-6 rounded-2xl border border-white/5">
-                        <div className="text-gray-400 text-sm mb-1">Payback Period</div>
-                        <div className="text-3xl font-bold text-white">{financialData?.paybackYear}</div>
-                        <div className="text-xs text-gray-500 mt-2">Anni per rientrare spese</div>
+                        <div className="text-gray-400 text-sm mb-1">{financialData?.metricLabel}</div>
+                        <div className="text-3xl font-bold text-white">{financialData?.mainMetric}</div>
+                        <div className="text-xs text-gray-500 mt-2">Capacità massima</div>
                      </div>
                      <div className="glass-panel p-6 rounded-2xl border border-white/5">
-                        <div className="text-gray-400 text-sm mb-1">Revenue Annuale</div>
+                        <div className="text-gray-400 text-sm mb-1">
+                           {scenario === 'construction' ? 'Valore Vendita (Exit)' : 'Revenue Annuale'}
+                        </div>
                         <div className="text-3xl font-bold text-white">€ {financialData?.annualRevenue.toLocaleString()}</div>
-                        <div className="text-xs text-gray-500 mt-2">Vendita energia stimata</div>
+                        <div className="text-xs text-gray-500 mt-2">
+                           {scenario === 'construction' ? 'Stima immobile finito' : 'Fatturato stimato / anno'}
+                        </div>
                      </div>
                   </div>
 
                   {/* Cash Flow Chart */}
                   <div className="lg:col-span-2 glass-panel p-6 rounded-2xl border border-white/5">
                      <h4 className="text-white font-bold mb-6 flex items-center justify-between">
-                        <span>Analisi Cash Flow Cumulativo</span>
-                        <span className="text-xs font-normal text-gray-500">CAPEX: € -{financialData?.capex.toLocaleString()}</span>
+                        <span>Analisi Cash Flow {scenario === 'construction' ? '(5 Anni Sviluppo)' : '(20 Anni Esercizio)'}</span>
+                        <span className="text-xs font-normal text-gray-500">CAPEX Iniziale: € -{financialData?.capex.toLocaleString()}</span>
                      </h4>
                      <div className="h-64 w-full">
                         <ResponsiveContainer width="100%" height="100%">
@@ -1540,9 +1672,9 @@ const AnalysisPage = () => {
                <div className="border-t border-white/10 pt-8">
                   <h3 className="text-white font-bold mb-6">Export Tecnico & Compliance</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                     <button className="flex items-center justify-between bg-white/5 hover:bg-white/10 border border-white/10 p-4 rounded-xl group transition-all">
+                     <button className="flex items-center justify-between bg-white/5 hover:bg-white/10 border border-white/10 p-4 rounded-xl group transition-all hover:border-primary-500/30">
                         <div className="flex items-center gap-3">
-                           <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center text-blue-400">
+                           <div className="w-10 h-10 bg-primary-500/20 rounded-lg flex items-center justify-center text-primary-400">
                               <FileSpreadsheet className="w-5 h-5" />
                            </div>
                            <div className="text-left">
@@ -1550,12 +1682,12 @@ const AnalysisPage = () => {
                               <div className="text-xs text-gray-500">Excel / Numbers</div>
                            </div>
                         </div>
-                        <Download className="w-5 h-5 text-gray-500 group-hover:text-white" />
+                        <Download className="w-5 h-5 text-gray-500 group-hover:text-primary-500" />
                      </button>
 
-                     <button className="flex items-center justify-between bg-white/5 hover:bg-white/10 border border-white/10 p-4 rounded-xl group transition-all">
+                     <button className="flex items-center justify-between bg-white/5 hover:bg-white/10 border border-white/10 p-4 rounded-xl group transition-all hover:border-primary-500/30">
                         <div className="flex items-center gap-3">
-                           <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center text-purple-400">
+                           <div className="w-10 h-10 bg-primary-500/20 rounded-lg flex items-center justify-center text-primary-400">
                               <Layers className="w-5 h-5" />
                            </div>
                            <div className="text-left">
@@ -1563,12 +1695,12 @@ const AnalysisPage = () => {
                               <div className="text-xs text-gray-500">Planimetria vettoriale</div>
                            </div>
                         </div>
-                        <Download className="w-5 h-5 text-gray-500 group-hover:text-white" />
+                        <Download className="w-5 h-5 text-gray-500 group-hover:text-primary-500" />
                      </button>
 
-                     <button className="flex items-center justify-between bg-white/5 hover:bg-white/10 border border-white/10 p-4 rounded-xl group transition-all">
+                     <button className="flex items-center justify-between bg-white/5 hover:bg-white/10 border border-white/10 p-4 rounded-xl group transition-all hover:border-primary-500/30">
                         <div className="flex items-center gap-3">
-                           <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center text-green-400">
+                           <div className="w-10 h-10 bg-primary-500/20 rounded-lg flex items-center justify-center text-primary-400">
                               <ShieldCheck className="w-5 h-5" />
                            </div>
                            <div className="text-left">
@@ -1576,7 +1708,7 @@ const AnalysisPage = () => {
                               <div className="text-xs text-gray-500">Analisi idrogeologica</div>
                            </div>
                         </div>
-                        <Download className="w-5 h-5 text-gray-500 group-hover:text-white" />
+                        <Download className="w-5 h-5 text-gray-500 group-hover:text-primary-500" />
                      </button>
                   </div>
                </div>
