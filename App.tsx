@@ -10,7 +10,8 @@ import {
   ChevronDown, Building, Database, Cpu, Globe, Clock, Plus,
   Eye, EyeOff, Edit, Save, X, Coins, FileSpreadsheet, LandPlot, Scale,
   Home, Tent, Timer, Wallet, Zap as ZapIcon, Sparkles, Smartphone, Hourglass, User,
-  Briefcase, HardHat, Sprout, Landmark, Warehouse, DollarSign
+  Briefcase, HardHat, Sprout, Landmark, Warehouse, DollarSign, Mail, LogIn, LogOut,
+  LayoutDashboard, Settings, PlusCircle, Chrome
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -1834,18 +1835,224 @@ const BlogPage = () => {
   );
 }
 
-const DashboardPage = () => (
-    <div className="pt-32 pb-20 min-h-screen flex items-center justify-center">
-        <div className="text-center">
-            <Lock className="w-16 h-16 text-gray-600 mx-auto mb-6" />
-            <h1 className="text-3xl font-bold text-white mb-2">Area Riservata</h1>
-            <p className="text-gray-400 mb-8">Effettua l'accesso per gestire i tuoi terreni e scaricare i report.</p>
-            <button className="bg-primary-600 hover:bg-primary-500 text-white px-8 py-3 rounded-full font-bold transition-all">
-                Accedi con Google
-            </button>
+const DashboardPage = () => {
+  const [user, setUser] = useState<any>(null);
+  const [isLoginMode, setIsLoginMode] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Mock Login Handler
+  const handleAuth = (e: React.FormEvent) => {
+      e.preventDefault();
+      setIsLoading(true);
+      
+      // Simulate network delay
+      setTimeout(() => {
+          setUser({ 
+              id: 'usr_123', 
+              email: email || 'demo@terreninvendita.ai', 
+              name: email ? email.split('@')[0] : 'Investitore',
+              plan: 'free' 
+          });
+          setIsLoading(false);
+      }, 1500);
+  };
+
+  const handleLogout = () => {
+      setUser(null);
+  };
+
+  if (user) {
+      return (
+        <div className="pt-32 pb-20 min-h-screen">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                
+                {/* Header */}
+                <div className="flex justify-between items-center mb-10">
+                    <div>
+                        <h1 className="text-3xl font-bold text-white mb-2">Bentornato, {user.name}</h1>
+                        <p className="text-gray-400">Ecco una panoramica del tuo portafoglio immobiliare.</p>
+                    </div>
+                    <button 
+                        onClick={handleLogout}
+                        className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors bg-white/5 px-4 py-2 rounded-lg"
+                    >
+                        <LogOut className="w-4 h-4" /> Logout
+                    </button>
+                </div>
+
+                {/* Stats Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                    <div className="glass-panel p-6 rounded-2xl border border-white/10 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-4 opacity-5"><LayoutDashboard className="w-24 h-24 text-white" /></div>
+                        <div className="text-gray-400 text-sm uppercase tracking-widest mb-2">Terreni Analizzati</div>
+                        <div className="text-4xl font-bold text-white font-mono">12</div>
+                        <div className="text-green-500 text-xs mt-2 flex items-center gap-1"><ArrowRight className="w-3 h-3 rotate-45" /> +2 questa settimana</div>
+                    </div>
+                    <div className="glass-panel p-6 rounded-2xl border border-white/10 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-4 opacity-5"><Wallet className="w-24 h-24 text-white" /></div>
+                        <div className="text-gray-400 text-sm uppercase tracking-widest mb-2">Valore Stimato</div>
+                        <div className="text-4xl font-bold text-white font-mono">€ 450k</div>
+                        <div className="text-gray-500 text-xs mt-2">Basato su AI Valuation</div>
+                    </div>
+                    <div className="glass-panel p-6 rounded-2xl border border-white/10 relative overflow-hidden group cursor-pointer hover:border-primary-500/30 transition-all">
+                        <div className="absolute top-0 right-0 p-4 opacity-5"><Settings className="w-24 h-24 text-white" /></div>
+                        <div className="text-gray-400 text-sm uppercase tracking-widest mb-2">Piano Attivo</div>
+                        <div className="text-4xl font-bold text-primary-500 font-display">FREE</div>
+                        <div className="text-white text-xs mt-2 flex items-center gap-1 group-hover:underline">Upgrade to PRO <ArrowRight className="w-3 h-3" /></div>
+                    </div>
+                </div>
+
+                {/* Recent Activity / Saved Lands */}
+                <div className="glass-panel rounded-2xl border border-white/10 overflow-hidden">
+                    <div className="p-6 border-b border-white/10 flex justify-between items-center">
+                        <h3 className="font-bold text-white flex items-center gap-2"><MapPin className="w-5 h-5 text-primary-500" /> I tuoi Terreni Salvati</h3>
+                        <button className="text-primary-400 text-sm font-bold hover:text-white transition-colors flex items-center gap-1">
+                            <PlusCircle className="w-4 h-4" /> Nuova Analisi
+                        </button>
+                    </div>
+                    <div className="divide-y divide-white/5">
+                        {[
+                            { name: "Uliveto Ostuni", date: "Oggi, 10:23", status: "Ottimo", score: 92 },
+                            { name: "Lotto Chianti Classico", date: "Ieri, 18:45", status: "Buono", score: 85 },
+                            { name: "Terreno Ind. Bari", date: "12 Mag, 09:15", status: "Medio", score: 74 }
+                        ].map((item, i) => (
+                            <div key={i} className="p-6 flex items-center justify-between hover:bg-white/5 transition-colors cursor-pointer group">
+                                <div className="flex items-center gap-4">
+                                    <div className="bg-white/10 w-10 h-10 rounded-full flex items-center justify-center text-gray-400">
+                                        <LandPlot className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <div className="font-bold text-white group-hover:text-primary-400 transition-colors">{item.name}</div>
+                                        <div className="text-xs text-gray-500">{item.date}</div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-6">
+                                    <div className="text-right">
+                                        <div className="text-xs text-gray-500 uppercase">AI Score</div>
+                                        <div className="font-bold text-white font-mono">{item.score}</div>
+                                    </div>
+                                    <ChevronDown className="w-5 h-5 text-gray-600 -rotate-90" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+            </div>
+        </div>
+      );
+  }
+
+  return (
+    <div className="pt-20 min-h-screen flex">
+        {/* LEFT SIDE - VISUAL */}
+        <div className="hidden lg:flex w-1/2 relative bg-black items-center justify-center overflow-hidden">
+            <div className="absolute inset-0 opacity-60">
+                <img src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop" className="w-full h-full object-cover" alt="Earth Data" />
+            </div>
+            <div className="absolute inset-0 bg-gradient-to-r from-black/80 to-transparent"></div>
+            <div className="relative z-10 max-w-lg px-12">
+                <Hexagon className="w-12 h-12 text-primary-500 mb-8 animate-pulse" />
+                <h2 className="text-5xl font-bold text-white font-display mb-6 leading-tight">
+                    "Il futuro dell'immobiliare è nei <span className="text-primary-500">dati</span>, non nei mattoni."
+                </h2>
+                <p className="text-gray-300 text-lg">Accedi alla suite di analisi territoriale più avanzata d'Europa.</p>
+            </div>
+        </div>
+
+        {/* RIGHT SIDE - FORM */}
+        <div className="w-full lg:w-1/2 bg-[#09090b] flex flex-col justify-center px-8 md:px-20 relative">
+            <div className="max-w-md w-full mx-auto">
+                <div className="text-center mb-10">
+                    <h2 className="text-3xl font-bold text-white mb-2">{isLoginMode ? 'Bentornato' : 'Crea Account'}</h2>
+                    <p className="text-gray-400">
+                        {isLoginMode ? 'Inserisci le tue credenziali per accedere.' : 'Inizia la tua prova gratuita oggi.'}
+                    </p>
+                </div>
+
+                {/* SOCIAL AUTH */}
+                <div className="grid grid-cols-3 gap-4 mb-8">
+                    <button className="flex items-center justify-center py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-all group">
+                         <Chrome className="w-5 h-5 text-white group-hover:text-primary-400" />
+                    </button>
+                    <button className="flex items-center justify-center py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-all group">
+                         <Briefcase className="w-5 h-5 text-white group-hover:text-primary-400" /> {/* Apple fallback icon */}
+                    </button>
+                    <button className="flex items-center justify-center py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-all group">
+                         <Mail className="w-5 h-5 text-white group-hover:text-primary-400" />
+                    </button>
+                </div>
+
+                <div className="relative mb-8">
+                    <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/10"></div></div>
+                    <div className="relative flex justify-center text-sm"><span className="px-4 bg-[#09090b] text-gray-500">Oppure continua con email</span></div>
+                </div>
+
+                {/* FORM */}
+                <form onSubmit={handleAuth} className="space-y-5">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-400 mb-1.5">Email</label>
+                        <div className="relative">
+                            <Mail className="absolute left-3 top-3.5 w-5 h-5 text-gray-500" />
+                            <input 
+                                type="email" 
+                                required
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="mario@esempio.it" 
+                                className="w-full bg-black/50 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
+                            />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-400 mb-1.5">Password</label>
+                        <div className="relative">
+                            <Lock className="absolute left-3 top-3.5 w-5 h-5 text-gray-500" />
+                            <input 
+                                type="password" 
+                                required
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="••••••••" 
+                                className="w-full bg-black/50 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
+                            />
+                        </div>
+                    </div>
+
+                    {!isLoginMode && (
+                        <div className="flex items-start gap-2 text-sm text-gray-400">
+                            <input type="checkbox" required className="mt-1 rounded bg-white/10 border-transparent focus:ring-primary-500 text-primary-600" />
+                            <span>Accetto i <a href="#" className="text-primary-400 hover:underline">Termini di Servizio</a> e la Privacy Policy.</span>
+                        </div>
+                    )}
+
+                    <button 
+                        type="submit"
+                        disabled={isLoading}
+                        className="w-full bg-primary-600 hover:bg-primary-500 text-white font-bold py-3.5 rounded-xl shadow-[0_0_20px_rgba(34,197,94,0.2)] hover:shadow-[0_0_30px_rgba(34,197,94,0.4)] transition-all active:scale-95 flex items-center justify-center gap-2"
+                    >
+                        {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (isLoginMode ? 'Accedi' : 'Crea Account Gratuito')}
+                    </button>
+                </form>
+
+                <div className="mt-8 text-center">
+                    <p className="text-gray-400">
+                        {isLoginMode ? 'Non hai ancora un account?' : 'Hai già un account?'}
+                        <button 
+                            onClick={() => setIsLoginMode(!isLoginMode)}
+                            className="ml-2 text-primary-400 font-bold hover:text-primary-300 transition-colors"
+                        >
+                            {isLoginMode ? 'Registrati' : 'Accedi'}
+                        </button>
+                    </p>
+                </div>
+            </div>
         </div>
     </div>
-);
+  );
+};
 
 // --- MAIN APP COMPONENT ---
 
