@@ -11,7 +11,7 @@ import {
   Eye, EyeOff, Edit, Save, X, Coins, FileSpreadsheet, LandPlot, Scale,
   Home, Tent, Timer, Wallet, Zap as ZapIcon, Sparkles, Smartphone, Hourglass, User,
   Briefcase, HardHat, Sprout, Landmark, Warehouse, DollarSign, Mail, LogIn, LogOut,
-  LayoutDashboard, Settings, PlusCircle, Chrome
+  LayoutDashboard, Settings, PlusCircle, Chrome, Wand2, TreeDeciduous, Factory, Hammer
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -483,6 +483,167 @@ Generato da terreninvendita.ai
 
 // --- COMPONENTS ---
 
+// 1. INTENT SEARCH BAR COMPONENT (REDESIGNED - PREMIUM)
+const IntentSearchBar = ({ onNavigate }: { onNavigate: (mode: string) => void }) => {
+  const [text, setText] = useState('');
+  const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [intentResult, setIntentResult] = useState<{category: string, icon: any, desc: string, action: string} | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const placeholders = [
+    "Sono un costruttore...",
+    "Voglio investire nel fotovoltaico...",
+    "Cerco un terreno per costruire casa...",
+    "Voglio vendere il mio terreno agricolo...",
+    "Cerco opportunità di investimento..."
+  ];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setPlaceholderIndex((prev) => (prev + 1) % placeholders.length);
+    }, 3500);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setText(val);
+    setShowSuggestions(true);
+
+    // ADVANCED INTENT LOGIC MAPPING
+    const lowerVal = val.toLowerCase();
+    if (lowerVal.includes('costru') || lowerVal.includes('casa') || lowerVal.includes('villa')) {
+        setIntentResult({ 
+            category: 'Sviluppo Residenziale', 
+            icon: Hammer, 
+            desc: 'Analizza lotti edificabili per progetti residenziali.', 
+            action: 'analysis' 
+        });
+    } else if (lowerVal.includes('vende') || lowerVal.includes('privato') || lowerVal.includes('propriet')) {
+        setIntentResult({ 
+            category: 'Vendi Proprietà', 
+            icon: DollarSign, 
+            desc: 'Ottieni una valutazione e connettiti con i fondi.', 
+            action: 'sell' 
+        });
+    } else if (lowerVal.includes('invest') || lowerVal.includes('soldi') || lowerVal.includes('solare') || lowerVal.includes('reddito')) {
+        setIntentResult({ 
+            category: 'Investimento & Reddito', 
+            icon: TrendingUp, 
+            desc: 'Calcola ROI per Fotovoltaico, Glamping o Logistica.', 
+            action: 'income' 
+        });
+    } else if (lowerVal.includes('agricol') || lowerVal.includes('bio') || lowerVal.includes('vigne')) {
+        setIntentResult({ 
+            category: 'Sviluppo Agricolo', 
+            icon: Sprout, 
+            desc: 'Analisi suolo e clima per colture ad alto valore.', 
+            action: 'analysis' 
+        });
+    } else {
+        setIntentResult(null);
+    }
+  };
+
+  const executeAction = (mode: string) => {
+      setShowSuggestions(false);
+      setText('');
+      onNavigate(mode);
+  };
+
+  return (
+    <div className="w-full max-w-3xl mx-auto mt-12 mb-12 px-4 relative z-50">
+       {/* MAIN SEARCH CONTAINER */}
+       <div className="relative group">
+          {/* Glow Effect Behind */}
+          <div className="absolute -inset-0.5 bg-gradient-to-r from-primary-500 via-accent-500 to-primary-500 rounded-full blur opacity-30 group-hover:opacity-60 transition duration-1000 group-hover:duration-200 animate-gradient-x"></div>
+          
+          {/* Input Bar */}
+          <div className="relative bg-black/60 backdrop-blur-xl rounded-full border border-white/10 flex items-center shadow-2xl h-16 transition-all focus-within:bg-black/80 focus-within:border-primary-500/50">
+              
+              {/* Animated Icon */}
+              <div className="pl-6 pr-4 border-r border-white/5 h-8 flex items-center">
+                 <Sparkles className="w-5 h-5 text-accent-500 animate-pulse" />
+              </div>
+              
+              {/* Input Field */}
+              <input 
+                ref={inputRef}
+                type="text"
+                value={text}
+                onChange={handleInput}
+                onFocus={() => setShowSuggestions(true)}
+                className="w-full bg-transparent border-none text-white px-4 h-full focus:ring-0 outline-none text-lg placeholder:text-gray-400 font-medium"
+                placeholder={text ? "" : placeholders[placeholderIndex]}
+              />
+
+              {/* Action Button */}
+              <button className="mr-2 bg-white/10 hover:bg-white/20 text-white p-3 rounded-full transition-all flex items-center justify-center">
+                  <Search className="w-5 h-5" />
+              </button>
+          </div>
+       </div>
+
+       {/* DROPDOWN SUGGESTIONS (Floating Glass) */}
+       {showSuggestions && (
+           <div className="absolute top-full left-0 right-0 mt-4 px-0 animate-slide-up origin-top z-50">
+               <div className="bg-[#09090b] border border-white/10 rounded-2xl p-2 shadow-2xl ring-1 ring-white/5 overflow-hidden">
+                   
+                   {text.length > 0 && (
+                       <div className="mb-2 px-2 pt-2">
+                           <div className="text-[10px] text-gray-400 uppercase tracking-widest font-bold mb-2">Miglior Risultato</div>
+                           {intentResult ? (
+                               <div 
+                                    onClick={() => executeAction(intentResult.action)}
+                                    className="flex items-center gap-4 p-4 rounded-xl bg-primary-900/20 border border-primary-500/20 cursor-pointer hover:bg-primary-900/40 transition-all group"
+                                >
+                                   <div className="bg-primary-500 p-3 rounded-lg text-black shadow-lg shadow-primary-500/20">
+                                       <intentResult.icon className="w-6 h-6" />
+                                   </div>
+                                   <div className="flex-1">
+                                       <div className="text-white font-bold text-lg group-hover:text-primary-400 transition-colors">{intentResult.category}</div>
+                                       <div className="text-gray-300 text-sm">{intentResult.desc}</div>
+                                   </div>
+                                   <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-primary-500 group-hover:translate-x-1 transition-all" />
+                               </div>
+                           ) : (
+                               <div className="p-4 text-gray-400 italic text-sm flex items-center gap-2">
+                                   <Loader2 className="w-4 h-4 animate-spin" /> Analisi intento in corso...
+                               </div>
+                           )}
+                       </div>
+                   )}
+
+                   <div className="p-2">
+                       <div className="text-[10px] text-gray-400 uppercase tracking-widest font-bold mb-2 px-2">Esplora Rapido</div>
+                       <div className="grid grid-cols-2 gap-2">
+                           {[
+                               {text: "Costruire Casa", icon: Home, action: 'analysis'},
+                               {text: "Vendere Terreno", icon: DollarSign, action: 'sell'},
+                               {text: "Investire Solare", icon: Sun, action: 'income'},
+                               {text: "Agricoltura Bio", icon: Sprout, action: 'analysis'}
+                           ].map((chip, i) => (
+                               <button 
+                                key={i}
+                                onClick={() => executeAction(chip.action)}
+                                className="flex items-center gap-3 p-3 rounded-xl bg-zinc-800/50 hover:bg-zinc-700/80 border border-white/5 hover:border-white/20 transition-all text-left group"
+                               >
+                                   <chip.icon className="w-4 h-4 text-gray-400 group-hover:text-white" />
+                                   <span className="text-sm text-gray-200 group-hover:text-white font-medium">{chip.text}</span>
+                               </button>
+                           ))}
+                       </div>
+                   </div>
+
+               </div>
+           </div>
+       )}
+    </div>
+  );
+};
+
+
 const SearchWidget = ({ onSearch }: { onSearch: (mode: string) => void }) => {
   const [activeTab, setActiveTab] = useState<'buy' | 'sell' | 'income'>('buy');
   const [formData, setFormData] = useState({
@@ -850,7 +1011,7 @@ const ValuePropositionSection = () => {
 // --- PAGES ---
 
 const HeroSection = ({ onStartAnalysis }: { onStartAnalysis: (mode: string) => void }) => (
-  <div className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
+  <div className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20 pb-20">
     <div className="absolute inset-0 z-0">
       <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/60 to-black z-10" />
       <img 
@@ -876,27 +1037,31 @@ const HeroSection = ({ onStartAnalysis }: { onStartAnalysis: (mode: string) => v
                 <p className="text-xl text-gray-300 mb-10 max-w-xl leading-relaxed font-light">
                   Ottieni un'analisi scientifica istantanea su edificabilità, rischio idrogeologico e potenziale fotovoltaico. Mettiti in contatto diretto con costruttori e fondi d'investimento.
                 </p>
+                
+                {/* HUD Stats Grid */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+                    {[
+                        { label: "Dataset Analizzati", val: "45TB+" },
+                        { label: "Terreni Mappati", val: "12.5K" },
+                        { label: "Precisione AI", val: "99.8%" },
+                        { label: "Tempo Analisi", val: "0.2s" }
+                    ].map((stat, i) => (
+                        <div key={i} className="glass-card p-3 rounded-xl text-center group hover:border-primary-500/30 transition-all cursor-default">
+                            <div className="text-lg font-bold text-white font-display group-hover:text-primary-400 transition-colors">{stat.val}</div>
+                            <div className="text-[10px] text-gray-500 uppercase tracking-widest mt-1">{stat.label}</div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* NEW INTENT SEARCH BAR */}
+                <IntentSearchBar onNavigate={onStartAnalysis} />
+
             </div>
 
             {/* Right Widget */}
-            <div>
+            <div className="mt-12 lg:mt-0">
                 <SearchWidget onSearch={onStartAnalysis} />
             </div>
-        </div>
-
-        {/* HUD Stats Bar */}
-        <div className="mt-24 grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-                { label: "Dataset Analizzati", val: "45TB+" },
-                { label: "Terreni Mappati", val: "12.5K" },
-                { label: "Precisione AI", val: "99.8%" },
-                { label: "Tempo Analisi", val: "0.2s" }
-            ].map((stat, i) => (
-                <div key={i} className="glass-card p-4 rounded-xl text-center group hover:border-primary-500/30 transition-all cursor-default">
-                    <div className="text-2xl font-bold text-white font-display group-hover:text-primary-400 transition-colors">{stat.val}</div>
-                    <div className="text-xs text-gray-500 uppercase tracking-widest mt-1">{stat.label}</div>
-                </div>
-            ))}
         </div>
     </div>
   </div>
