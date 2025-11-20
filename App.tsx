@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import { 
@@ -9,7 +9,8 @@ import {
   Droplets, Mountain, Navigation, Download, Printer, Loader2,
   ChevronDown, Building, Database, Cpu, Globe, Clock, Plus,
   Eye, EyeOff, Edit, Save, X, Coins, FileSpreadsheet, LandPlot, Scale,
-  Home, Tent, Timer, Wallet, Zap as ZapIcon, Sparkles, Smartphone, Hourglass, User
+  Home, Tent, Timer, Wallet, Zap as ZapIcon, Sparkles, Smartphone, Hourglass, User,
+  Briefcase, HardHat, Sprout, Landmark, Warehouse, DollarSign
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -349,11 +350,9 @@ const generateAndDownloadCSV = (report: AnalysisReport, financialData: any) => {
 };
 
 const generateAndDownloadDXF = (sizeSqm: number = 5000) => {
-  // Calcola il lato di un quadrato equivalente
   const side = Math.sqrt(sizeSqm);
   const half = side / 2;
   
-  // Semplice DXF Header e entità POLYLINE (quadrato)
   const dxfContent = `0
 SECTION
 2
@@ -483,108 +482,237 @@ Generato da terreninvendita.ai
 
 // --- COMPONENTS ---
 
-const SearchWidget = ({ onSearch }: { onSearch: () => void }) => {
-  const [activeTab, setActiveTab] = useState<'sale' | 'rent'>('sale');
-  const [radius, setRadius] = useState(50);
+const SearchWidget = ({ onSearch }: { onSearch: (mode: string) => void }) => {
+  const [activeTab, setActiveTab] = useState<'buy' | 'sell' | 'income'>('buy');
+  const [formData, setFormData] = useState({
+    location: '',
+    type: 'Agricolo',
+    size: '',
+    minPrice: '',
+    maxPrice: ''
+  });
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [suggestions, setSuggestions] = useState<{icon: any, text: string, subtext: string, color: string}[]>([]);
+
+  // SUGGESTION ENGINE (REAL-TIME AI SIMULATION)
+  useEffect(() => {
+    const { location, type, size } = formData;
+    
+    // Only run suggestions for Sell/Income mode
+    if (activeTab !== 'buy' && location.length > 2) {
+      setIsAnalyzing(true);
+      
+      const timer = setTimeout(() => {
+        setIsAnalyzing(false);
+        const loc = location.toLowerCase();
+        const sizeNum = parseFloat(size) || 0;
+        
+        // Geographic Logic
+        const isSouth = loc.includes('puglia') || loc.includes('sicilia') || loc.includes('calabria') || loc.includes('basilicata') || loc.includes('sardegna');
+        const isNorth = loc.includes('milano') || loc.includes('torino') || loc.includes('veneto') || loc.includes('lombardia') || loc.includes('emilia');
+        const isCentral = loc.includes('toscana') || loc.includes('umbria') || loc.includes('lazio') || loc.includes('marche');
+
+        let newSuggestions = [];
+
+        if (activeTab === 'sell') {
+           // SELL LOGIC
+           if (type === 'Edificabile') {
+              if(isNorth) newSuggestions.push({ icon: HardHat, text: "Richiesta Costruttori Alta", subtext: "35 cantieri attivi in zona. Vendita rapida.", color: 'text-blue-400' });
+              newSuggestions.push({ icon: Briefcase, text: "Fondi Immobiliari", subtext: "Ricerca lotti > 1000mq per residenziale.", color: 'text-green-400' });
+           } else if (type === 'Agricolo' && sizeNum > 10000) {
+              newSuggestions.push({ icon: Sun, text: "Potenziale Agri-Voltaico", subtext: "Investitori energetici cercano > 1ha.", color: 'text-yellow-400' });
+              newSuggestions.push({ icon: Globe, text: "Investitori Esteri", subtext: "Interesse per bio/vigneti.", color: 'text-purple-400' });
+           } else {
+              newSuggestions.push({ icon: TrendingUp, text: "Valutazione Immediata", subtext: "Prezzi zona stabili/in crescita.", color: 'text-primary-400' });
+           }
+
+        } else if (activeTab === 'income') {
+           // INCOME LOGIC
+           if ((isSouth || isCentral) && sizeNum > 5000) {
+              newSuggestions.push({ icon: Sun, text: "Affitto Solare", subtext: "Rendita stimata €3.500/ha/anno.", color: 'text-yellow-400' });
+           }
+           if (type === 'Agricolo' && (isCentral || isSouth)) {
+              newSuggestions.push({ icon: Tent, text: "Glamping & Turismo", subtext: "ROI 18% con tende lusso.", color: 'text-green-400' });
+           }
+           if (type === 'Industriale') {
+              newSuggestions.push({ icon: Warehouse, text: "Logistica", subtext: "Affitto piazzali €15/mq.", color: 'text-blue-400' });
+           }
+           if (type === 'Edificabile') {
+               newSuggestions.push({ icon: Building, text: "Permuta", subtext: "Scambia con appartamenti.", color: 'text-indigo-400' });
+           }
+        }
+        
+        // Default suggestion if none matched
+        if(newSuggestions.length === 0) {
+             newSuggestions.push({ icon: Sparkles, text: "Analisi Potenziale", subtext: "Completa i dati per il report.", color: 'text-gray-400' });
+        }
+
+        setSuggestions(newSuggestions);
+      }, 600);
+
+      return () => clearTimeout(timer);
+    } else {
+      setSuggestions([]);
+    }
+  }, [formData, activeTab]);
+
+  const updateField = (field: string, value: string) => {
+      setFormData(prev => ({ ...prev, [field]: value }));
+  };
 
   return (
-    <div className="w-full max-w-md mx-auto lg:ml-auto relative z-20 animate-float">
-      {/* Tabs - Floating above */}
-      <div className="flex space-x-1 mb-2">
+    <div className="w-full max-w-xl mx-auto lg:ml-auto relative z-20 animate-float">
+      
+      {/* TABS */}
+      <div className="flex space-x-1 mb-2 p-1 bg-black/40 backdrop-blur-md rounded-t-xl border border-white/5 w-fit">
         <button 
-          onClick={() => setActiveTab('sale')}
-          className={`px-6 py-2 rounded-t-lg text-sm font-medium transition-all ${
-            activeTab === 'sale' 
-              ? 'bg-white text-black' 
-              : 'bg-black/40 text-gray-400 hover:text-white backdrop-blur-md'
+          onClick={() => { setActiveTab('buy'); setFormData({...formData, location: ''}); }}
+          className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 uppercase tracking-wide ${
+            activeTab === 'buy' ? 'bg-white text-black shadow-lg' : 'text-gray-400 hover:text-white'
           }`}
         >
-          In vendita
+          <Search className="w-3 h-3" /> Compra
         </button>
         <button 
-          onClick={() => setActiveTab('rent')}
-          className={`px-6 py-2 rounded-t-lg text-sm font-medium transition-all ${
-            activeTab === 'rent' 
-              ? 'bg-white text-black' 
-              : 'bg-black/40 text-gray-400 hover:text-white backdrop-blur-md'
+          onClick={() => { setActiveTab('sell'); setFormData({...formData, location: ''}); }}
+          className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 uppercase tracking-wide ${
+            activeTab === 'sell' ? 'bg-primary-500 text-black shadow-lg shadow-primary-500/20' : 'text-gray-400 hover:text-white'
           }`}
         >
-          In affitto
+          <Coins className="w-3 h-3" /> Vendi
+        </button>
+        <button 
+          onClick={() => { setActiveTab('income'); setFormData({...formData, location: ''}); }}
+          className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 uppercase tracking-wide ${
+            activeTab === 'income' ? 'bg-accent-500 text-white shadow-lg shadow-accent-500/20' : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          <TrendingUp className="w-3 h-3" /> Reddito
         </button>
       </div>
 
-      {/* Main Card */}
-      <div className="glass-card p-6 md:p-8 rounded-b-2xl rounded-tr-2xl border border-white/10 shadow-2xl backdrop-blur-xl bg-black/40">
-        <h3 className="text-2xl font-display font-bold text-white mb-6">Trova il tuo terreno</h3>
+      {/* MAIN CARD */}
+      <div className="glass-card p-8 rounded-b-3xl rounded-tr-3xl border border-white/10 shadow-2xl backdrop-blur-xl bg-black/80 relative overflow-hidden ring-1 ring-white/5">
         
-        <div className="space-y-5">
-          {/* Location Input */}
+        <h3 className="text-2xl font-display font-bold text-white mb-6 flex items-center gap-2">
+            {activeTab === 'buy' && "Trova il terreno perfetto"}
+            {activeTab === 'sell' && <><span className="text-primary-500">Monetizza</span> la tua proprietà</>}
+            {activeTab === 'income' && "Calcola rendita potenziale"}
+        </h3>
+        
+        <div className="space-y-4">
+          
+          {/* LOCATION (SHARED) */}
           <div className="relative group">
-            <input 
-              type="text" 
-              placeholder="Città o CAP (es. Milano)" 
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 pl-10 text-white placeholder:text-gray-500 focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
-            />
-            <MapPin className="absolute left-3 top-3.5 w-4 h-4 text-gray-400 group-focus-within:text-primary-500 transition-colors" />
-          </div>
-
-          {/* Radius Slider */}
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs font-medium text-gray-400">
-              <span>Km 5</span>
-              <span className="text-primary-400 font-bold">Km {radius}</span>
-              <span>Km 200</span>
-            </div>
-            <input 
-              type="range" 
-              min="5" 
-              max="200" 
-              value={radius}
-              onChange={(e) => setRadius(parseInt(e.target.value))}
-              className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-primary-500 hover:accent-primary-400"
-            />
-          </div>
-
-          {/* Dropdowns */}
-          <div className="space-y-3">
+            <label className="block text-xs text-gray-500 uppercase tracking-wider mb-1.5 font-bold">Dove si trova il terreno?</label>
             <div className="relative">
-              <select className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-gray-300 appearance-none focus:ring-2 focus:ring-primary-500 outline-none cursor-pointer hover:bg-white/10 transition-colors">
-                <option>Tipologia terreno</option>
-                <option>Edificabile</option>
-                <option>Agricolo</option>
-                <option>Industriale</option>
-              </select>
-              <ChevronDown className="absolute right-3 top-3.5 w-4 h-4 text-gray-400 pointer-events-none" />
-            </div>
-
-            <div className="relative">
-              <select className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-gray-300 appearance-none focus:ring-2 focus:ring-primary-500 outline-none cursor-pointer hover:bg-white/10 transition-colors">
-                <option>Superficie minima</option>
-                <option>1.000 m²</option>
-                <option>5.000 m²</option>
-                <option>10.000 m²</option>
-              </select>
-              <ChevronDown className="absolute right-3 top-3.5 w-4 h-4 text-gray-400 pointer-events-none" />
-            </div>
-
-            <div className="relative">
-              <select className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-gray-300 appearance-none focus:ring-2 focus:ring-primary-500 outline-none cursor-pointer hover:bg-white/10 transition-colors">
-                <option>Prezzo massimo</option>
-                <option>€ 50.000</option>
-                <option>€ 150.000</option>
-                <option>€ 500.000</option>
-              </select>
-              <ChevronDown className="absolute right-3 top-3.5 w-4 h-4 text-gray-400 pointer-events-none" />
+                <input 
+                type="text" 
+                value={formData.location}
+                onChange={(e) => updateField('location', e.target.value)}
+                placeholder="Città, CAP o Zona (es. Chianti)" 
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 pl-11 text-white placeholder:text-gray-600 focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all font-medium"
+                />
+                <div className="absolute left-3 top-3.5 text-gray-400 group-focus-within:text-primary-500 transition-colors">
+                    {isAnalyzing ? <Loader2 className="w-5 h-5 animate-spin text-primary-500" /> : <MapPin className="w-5 h-5" />}
+                </div>
             </div>
           </div>
 
-          {/* Search Button */}
+          {/* TYPE & SIZE (SHARED LAYOUT) */}
+          <div className="grid grid-cols-2 gap-4">
+              <div>
+                 <label className="block text-xs text-gray-500 uppercase tracking-wider mb-1.5 font-bold">Tipologia</label>
+                 <div className="relative">
+                    <select 
+                        value={formData.type}
+                        onChange={(e) => updateField('type', e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white appearance-none focus:ring-2 focus:ring-primary-500 outline-none cursor-pointer"
+                    >
+                        <option className="bg-dark-900">Agricolo</option>
+                        <option className="bg-dark-900">Edificabile</option>
+                        <option className="bg-dark-900">Industriale</option>
+                        <option className="bg-dark-900">Boschivo</option>
+                    </select>
+                    <ChevronDown className="absolute right-3 top-3.5 w-4 h-4 text-gray-500 pointer-events-none" />
+                 </div>
+              </div>
+              <div>
+                 <label className="block text-xs text-gray-500 uppercase tracking-wider mb-1.5 font-bold">Superficie (mq)</label>
+                 <div className="relative">
+                    <input 
+                        type="number" 
+                        value={formData.size}
+                        onChange={(e) => updateField('size', e.target.value)}
+                        placeholder="Es. 5000"
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-gray-600 focus:ring-2 focus:ring-primary-500 outline-none"
+                    />
+                    <span className="absolute right-4 top-3.5 text-xs text-gray-500 font-mono">MQ</span>
+                 </div>
+              </div>
+          </div>
+
+          {/* BUY MODE ONLY: PRICE RANGE */}
+          {activeTab === 'buy' && (
+              <div className="grid grid-cols-2 gap-4 animate-fade-in">
+                  <div>
+                     <label className="block text-xs text-gray-500 uppercase tracking-wider mb-1.5 font-bold">Prezzo Min</label>
+                     <div className="relative">
+                        <input 
+                            type="number" 
+                            placeholder="€ 0" 
+                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:ring-2 focus:ring-primary-500" 
+                            value={formData.minPrice}
+                            onChange={(e) => updateField('minPrice', e.target.value)}
+                        />
+                     </div>
+                  </div>
+                  <div>
+                     <label className="block text-xs text-gray-500 uppercase tracking-wider mb-1.5 font-bold">Prezzo Max</label>
+                     <div className="relative">
+                        <input 
+                            type="number" 
+                            placeholder="€ Max" 
+                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:ring-2 focus:ring-primary-500" 
+                            value={formData.maxPrice}
+                            onChange={(e) => updateField('maxPrice', e.target.value)}
+                        />
+                     </div>
+                  </div>
+              </div>
+          )}
+
+          {/* SELL & INCOME: AI SUGGESTIONS */}
+          {activeTab !== 'buy' && suggestions.length > 0 && (
+              <div className="mt-4 space-y-2 animate-slide-up">
+                  <div className="text-[10px] text-primary-500 font-mono uppercase tracking-widest mb-2 flex items-center gap-2">
+                      <Sparkles className="w-3 h-3" /> Suggerimenti AI Real-Time
+                  </div>
+                  {suggestions.map((s, idx) => (
+                      <div key={idx} className="glass-panel border border-white/10 rounded-xl p-3 flex items-start gap-3 hover:bg-white/10 hover:border-primary-500/30 transition-all cursor-default shadow-lg">
+                          <div className={`p-2 rounded-lg bg-black/40 border border-white/5 ${s.color}`}>
+                              <s.icon className="w-5 h-5" />
+                          </div>
+                          <div className="flex-1">
+                              <div className={`text-sm font-bold ${s.color}`}>{s.text}</div>
+                              <div className="text-xs text-gray-400 mt-0.5">{s.subtext}</div>
+                          </div>
+                      </div>
+                  ))}
+              </div>
+          )}
+
+          {/* ACTION BUTTON */}
           <button 
-            onClick={onSearch}
-            className="w-full bg-primary-600 hover:bg-primary-500 text-white font-bold py-4 rounded-lg transition-all shadow-[0_0_20px_-5px_rgba(34,197,94,0.5)] hover:shadow-[0_0_30px_-5px_rgba(34,197,94,0.7)] flex justify-center items-center gap-2 active:scale-95 mt-2"
+            onClick={() => onSearch(activeTab)}
+            className={`w-full font-bold py-4 rounded-xl transition-all flex justify-center items-center gap-3 active:scale-95 mt-4 shadow-xl uppercase tracking-wide text-sm ${
+                activeTab === 'buy' ? 'bg-white text-black hover:bg-gray-200' :
+                activeTab === 'sell' ? 'bg-primary-600 text-white hover:bg-primary-500 shadow-primary-500/20' :
+                'bg-accent-600 text-white hover:bg-accent-500 shadow-accent-500/20'
+            }`}
           >
-            <Search className="w-5 h-5" />
-            CERCA
+            {activeTab === 'buy' ? 'CERCA TERRENI' : activeTab === 'sell' ? 'VALUTA E MONETIZZA' : 'CALCOLA RENDITA'}
+            <ArrowRight className="w-5 h-5" />
           </button>
         </div>
       </div>
@@ -595,7 +723,6 @@ const SearchWidget = ({ onSearch }: { onSearch: () => void }) => {
 const ValuePropositionSection = () => {
   return (
     <div className="py-32 bg-black relative overflow-hidden">
-      {/* Background Elements */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(34,197,94,0.05),transparent_40%)]" />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -609,353 +736,1027 @@ const ValuePropositionSection = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-          
-          {/* LEFT: OLD METHOD (Analog/Dim) */}
-          <div className="relative group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-red-900 to-red-800 rounded-2xl blur opacity-20 group-hover:opacity-30 transition duration-1000"></div>
-            <div className="relative bg-dark-900/80 border border-red-900/30 p-8 rounded-2xl backdrop-blur-sm">
-              
-              <div className="flex justify-between items-start mb-8">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-red-500/10 rounded-lg">
-                    <Hourglass className="w-8 h-8 text-red-500" />
-                  </div>
-                  <div>
-                    <h3 className="text-2xl font-bold text-white">30 Giorni</h3>
-                    <p className="text-red-400 text-sm font-mono">LENTO & COSTOSO</p>
-                  </div>
-                </div>
-                <span className="bg-red-900/30 text-red-400 px-3 py-1 rounded text-xs font-bold border border-red-900/50">METODO TRADIZIONALE</span>
-              </div>
-
-              {/* Speed Bar - Slow */}
-              <div className="mb-8">
-                <div className="flex justify-between text-xs text-gray-500 mb-2 font-mono">
-                  <span>TEMPO DI ESECUZIONE</span>
-                  <span>30%</span>
-                </div>
-                <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-                  <div className="h-full w-[30%] bg-red-500/50 rounded-full animate-pulse"></div>
-                </div>
-              </div>
-
-              {/* Cost List */}
-              <div className="space-y-4 font-mono text-sm">
-                {[
-                  { label: "Geometra (Visure)", price: "€ 350" },
-                  { label: "Relazione Geologica", price: "€ 800" },
-                  { label: "Studio Fattibilità Arch.", price: "€ 1.500" },
-                  { label: "Business Plan", price: "€ 600" }
-                ].map((item, i) => (
-                  <div key={i} className="flex justify-between items-center p-3 bg-white/5 rounded border border-white/5 text-gray-400">
-                    <span>{item.label}</span>
-                    <span className="text-white">{item.price}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-8 pt-6 border-t border-white/10">
-                <div className="flex justify-between items-end">
-                  <span className="text-gray-500 text-xs uppercase tracking-wider">Costo Totale Stimato</span>
-                  <span className="text-4xl font-bold text-red-500 font-display">€ 3.250</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* RIGHT: NEW METHOD (Digital/Green/Glowing) */}
-          <div className="relative group transform hover:-translate-y-2 transition-transform duration-500">
-            {/* Glow Effect */}
-            <div className="absolute -inset-1 bg-gradient-to-r from-primary-600 to-primary-400 rounded-2xl blur opacity-40 group-hover:opacity-60 animate-pulse transition duration-1000"></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
             
-            <div className="relative bg-black border border-primary-500/50 p-8 rounded-2xl backdrop-blur-xl shadow-2xl">
-              
-              <div className="flex justify-between items-start mb-8">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-primary-500/20 rounded-lg border border-primary-500/30">
-                    <ZapIcon className="w-8 h-8 text-primary-400 animate-pulse" />
-                  </div>
-                  <div>
-                    <h3 className="text-3xl font-bold text-white font-display">12 Secondi</h3>
-                    <p className="text-primary-400 text-sm font-mono tracking-wide">AI REAL-TIME ANALYSIS</p>
-                  </div>
-                </div>
-                <span className="bg-primary-500 text-black px-3 py-1 rounded text-xs font-bold shadow-[0_0_15px_rgba(34,197,94,0.5)]">TERRENINVENDITA.AI</span>
-              </div>
-
-               {/* Speed Bar - Fast */}
-               <div className="mb-8">
-                <div className="flex justify-between text-xs text-primary-400 mb-2 font-mono">
-                  <span>VELOCITÀ DI ESECUZIONE</span>
-                  <span className="animate-pulse">100%</span>
-                </div>
-                <div className="h-2 bg-white/5 rounded-full overflow-hidden relative">
-                  <div className="absolute inset-0 bg-primary-500 shadow-[0_0_10px_#22c55e] animate-[scan_1s_ease-in-out_infinite] w-full"></div>
-                </div>
-              </div>
-
-              {/* Features List */}
-              <div className="space-y-4 font-mono text-sm">
-                {[
-                  "Dati Catastali & Urbanistici",
-                  "Analisi Geologica AI",
-                  "Export CAD Tecnico",
-                  "Business Plan Bancabile"
-                ].map((item, i) => (
-                  <div key={i} className="flex justify-between items-center p-3 bg-primary-500/5 rounded border border-primary-500/20 text-white group/item hover:bg-primary-500/10 transition-colors cursor-default">
-                    <div className="flex items-center gap-3">
-                      <CheckCircle className="w-4 h-4 text-primary-500" />
-                      <span>{item}</span>
+            {/* OLD METHOD CARD - GLASS DARK */}
+            <div className="glass-panel border border-white/5 p-8 rounded-3xl relative overflow-hidden group hover:border-white/10 transition-all duration-500 hover:shadow-xl hover:shadow-red-900/10">
+                <div className="absolute top-0 right-0 bg-red-500/20 px-4 py-1 rounded-bl-xl text-red-400 text-xs font-bold font-mono tracking-wider">METODO TRADIZIONALE</div>
+                
+                {/* SPEED METER SLOW */}
+                <div className="mb-8">
+                    <div className="flex items-center gap-3 mb-2">
+                        <Hourglass className="w-6 h-6 text-red-500 animate-pulse" />
+                        <h3 className="text-2xl font-bold text-white">30 Giorni</h3>
                     </div>
-                    <span className="text-primary-400 text-xs font-bold uppercase">Incluso</span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-8 pt-6 border-t border-primary-500/30 relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary-500 to-transparent"></div>
-                <div className="flex justify-between items-end">
-                  <span className="text-primary-400 text-xs uppercase tracking-wider">Costo Report Premium</span>
-                  <span className="text-5xl font-bold text-primary-500 font-display drop-shadow-[0_0_10px_rgba(34,197,94,0.5)]">€ 49</span>
+                    <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                        <div className="h-full bg-red-500 w-[5%]"></div>
+                    </div>
                 </div>
-              </div>
 
+                <div className="space-y-6 relative z-10">
+                    <div className="flex justify-between items-center p-4 rounded-xl bg-white/5 border border-transparent hover:border-white/10 transition-all">
+                        <span className="text-gray-400">Geometra (Visure)</span>
+                        <span className="font-mono text-white">€ 350</span>
+                    </div>
+                    <div className="flex justify-between items-center p-4 rounded-xl bg-white/5 border border-transparent hover:border-white/10 transition-all">
+                        <span className="text-gray-400">Relazione Geologica</span>
+                        <span className="font-mono text-white">€ 800</span>
+                    </div>
+                    <div className="flex justify-between items-center p-4 rounded-xl bg-white/5 border border-transparent hover:border-white/10 transition-all">
+                        <span className="text-gray-400">Studio Fattibilità Arch.</span>
+                        <span className="font-mono text-white">€ 1.500</span>
+                    </div>
+                    <div className="flex justify-between items-center p-4 rounded-xl bg-white/5 border border-transparent hover:border-white/10 transition-all">
+                        <span className="text-gray-400">Business Plan</span>
+                        <span className="font-mono text-white">€ 600</span>
+                    </div>
+                </div>
+
+                {/* TOTAL HUD */}
+                <div className="mt-8 pt-6 border-t border-white/10">
+                    <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-6 text-center group-hover:bg-red-500/20 transition-all">
+                        <div className="text-xs text-red-400 uppercase tracking-widest mb-1">Costo Totale Stimato</div>
+                        <div className="text-4xl font-bold text-red-500 font-mono">€ 3.250</div>
+                    </div>
+                </div>
             </div>
-          </div>
+
+            {/* NEW METHOD CARD - GLASS GREEN GLOW */}
+            <div className="glass-panel border border-primary-500/30 p-8 rounded-3xl relative overflow-hidden group hover:border-primary-500/60 transition-all duration-500 hover:shadow-[0_0_50px_-10px_rgba(34,197,94,0.2)]">
+                <div className="absolute top-0 right-0 bg-primary-500 px-4 py-1 rounded-bl-xl text-black text-xs font-bold font-mono tracking-wider">TERRENINVENDITA.AI</div>
+                
+                {/* SPEED METER FAST */}
+                <div className="mb-8">
+                    <div className="flex items-center gap-3 mb-2">
+                        <ZapIcon className="w-6 h-6 text-primary-500 animate-bounce" />
+                        <h3 className="text-2xl font-bold text-white">12 Secondi</h3>
+                    </div>
+                    <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden relative">
+                        <div className="h-full bg-primary-500 w-full animate-scan"></div>
+                        <div className="absolute top-0 right-0 h-full w-full bg-gradient-to-r from-transparent to-primary-500 opacity-50 blur-sm"></div>
+                    </div>
+                </div>
+
+                <div className="space-y-6 relative z-10">
+                    <div className="flex justify-between items-center p-4 rounded-xl bg-primary-500/5 border border-primary-500/10 group-hover:bg-primary-500/10 transition-all">
+                        <div className="flex items-center gap-3">
+                            <CheckCircle className="w-5 h-5 text-primary-500" />
+                            <span className="text-gray-200">Dati Catastali & Urbanistici</span>
+                        </div>
+                        <span className="font-bold text-white">Incluso</span>
+                    </div>
+                    <div className="flex justify-between items-center p-4 rounded-xl bg-primary-500/5 border border-primary-500/10 group-hover:bg-primary-500/10 transition-all">
+                        <div className="flex items-center gap-3">
+                            <CheckCircle className="w-5 h-5 text-primary-500" />
+                            <span className="text-gray-200">Analisi Geologica AI</span>
+                        </div>
+                        <span className="font-bold text-white">Incluso</span>
+                    </div>
+                    <div className="flex justify-between items-center p-4 rounded-xl bg-primary-500/5 border border-primary-500/10 group-hover:bg-primary-500/10 transition-all">
+                        <div className="flex items-center gap-3">
+                            <CheckCircle className="w-5 h-5 text-primary-500" />
+                            <span className="text-gray-200">Export CAD Tecnico</span>
+                        </div>
+                        <span className="font-bold text-white">Incluso</span>
+                    </div>
+                    <div className="flex justify-between items-center p-4 rounded-xl bg-primary-500/5 border border-primary-500/10 group-hover:bg-primary-500/10 transition-all">
+                        <div className="flex items-center gap-3">
+                            <CheckCircle className="w-5 h-5 text-primary-500" />
+                            <span className="text-gray-200">Business Plan Bancabile</span>
+                        </div>
+                        <span className="font-bold text-white">Incluso</span>
+                    </div>
+                </div>
+
+                {/* TOTAL HUD */}
+                <div className="mt-8 pt-6 border-t border-primary-500/20">
+                    <div className="bg-primary-500/10 border border-primary-500/30 rounded-2xl p-6 text-center group-hover:bg-primary-500/20 transition-all relative overflow-hidden">
+                        <div className="absolute inset-0 bg-primary-500/10 blur-xl animate-pulse"></div>
+                        <div className="relative z-10">
+                            <div className="text-xs text-primary-400 uppercase tracking-widest mb-1">Costo Report Premium</div>
+                            <div className="text-5xl font-bold text-primary-500 font-mono">€ 49</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
         </div>
+      </div>
+    </div>
+  );
+};
 
-        {/* Floating Benefits */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16">
+// --- PAGES ---
+
+const HeroSection = ({ onStartAnalysis }: { onStartAnalysis: (mode: string) => void }) => (
+  <div className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
+    <div className="absolute inset-0 z-0">
+      <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/60 to-black z-10" />
+      <img 
+        src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?ixlib=rb-4.0.3&auto=format&fit=crop&w=2500&q=80" 
+        alt="Land Landscape" 
+        className="w-full h-full object-cover"
+      />
+    </div>
+
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-20 w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            {/* Left Content */}
+            <div className="text-left">
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 backdrop-blur-md mb-8 animate-float">
+                    <Sparkles className="w-4 h-4 text-primary-400" />
+                    <span className="text-sm font-medium text-primary-100">La prima AI per il Land Banking</span>
+                </div>
+                
+                <h1 className="text-4xl md:text-6xl font-display font-bold text-white mb-6 leading-tight tracking-tight">
+                  Decodifica il valore del tuo terreno.
+                </h1>
+                
+                <p className="text-xl text-gray-300 mb-10 max-w-xl leading-relaxed font-light">
+                  Ottieni un'analisi scientifica istantanea su edificabilità, rischio idrogeologico e potenziale fotovoltaico. Mettiti in contatto diretto con costruttori e fondi d'investimento.
+                </p>
+            </div>
+
+            {/* Right Widget */}
+            <div>
+                <SearchWidget onSearch={onStartAnalysis} />
+            </div>
+        </div>
+
+        {/* HUD Stats Bar */}
+        <div className="mt-24 grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-                { icon: Wallet, title: "Risparmio del 98%", desc: "Elimina i costi fissi di consulenza preliminare. Paga solo per i terreni che meritano davvero." },
-                { icon: Eye, title: "Valore Nascosto", desc: "L'AI identifica potenziali di business (Agrivoltaico, Glamping) invisibili ad occhio nudo." },
-                { icon: FileText, title: "Export Ready", desc: "Scarica file pronti per l'uso (DXF, CSV) da inviare direttamente al tuo architetto o banca." }
-            ].map((item, idx) => (
-                <div key={idx} className="p-6 rounded-xl bg-white/5 border border-white/5 hover:border-primary-500/30 transition-colors text-center group">
-                    <div className="inline-flex p-4 rounded-2xl bg-white/5 text-primary-500 mb-4 group-hover:scale-110 transition-transform duration-300 group-hover:bg-primary-500/10 group-hover:shadow-[0_0_15px_rgba(34,197,94,0.2)]">
-                        <item.icon className="w-8 h-8" />
-                    </div>
-                    <h3 className="text-xl font-bold text-white mb-2">{item.title}</h3>
-                    <p className="text-gray-400 leading-relaxed text-sm">{item.desc}</p>
+                { label: "Dataset Analizzati", val: "45TB+" },
+                { label: "Terreni Mappati", val: "12.5K" },
+                { label: "Precisione AI", val: "99.8%" },
+                { label: "Tempo Analisi", val: "0.2s" }
+            ].map((stat, i) => (
+                <div key={i} className="glass-card p-4 rounded-xl text-center group hover:border-primary-500/30 transition-all cursor-default">
+                    <div className="text-2xl font-bold text-white font-display group-hover:text-primary-400 transition-colors">{stat.val}</div>
+                    <div className="text-xs text-gray-500 uppercase tracking-widest mt-1">{stat.label}</div>
                 </div>
             ))}
         </div>
+    </div>
+  </div>
+);
+
+const FeaturedSection = () => {
+    const [isAdminMode, setIsAdminMode] = useState(false);
+    const [listings, setListings] = useState(MOCK_FEATURED_LISTINGS_FALLBACK);
+
+    // Load from DB on mount
+    useEffect(() => {
+        const saved = localStorage.getItem('featured_listings');
+        if (saved) {
+            setListings(JSON.parse(saved));
+        }
+    }, []);
+
+    const handleImageUpload = (id: string, file: File) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            const base64 = reader.result as string;
+            const updated = listings.map(l => l.id === id ? { ...l, img: base64 } : l);
+            setListings(updated);
+            localStorage.setItem('featured_listings', JSON.stringify(updated));
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const updateField = (id: string, field: string, value: string | number) => {
+        const updated = listings.map(l => l.id === id ? { ...l, [field]: value } : l);
+        setListings(updated);
+        localStorage.setItem('featured_listings', JSON.stringify(updated));
+    };
+
+    return (
+        <div className="py-24 bg-dark-900 border-t border-white/5 relative">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                
+                {/* Header with Admin Toggle */}
+                <div className="flex justify-between items-end mb-12">
+                    <div>
+                        <h2 className="text-3xl font-display font-bold text-white mb-2">Vuoi mostrare qui la tua proprietà?</h2>
+                        <p className="text-gray-400">I terreni migliori d'Italia scelti dall'AI. Dai visibilità al tuo lotto o esplora le opportunità.</p>
+                    </div>
+                    
+                    <div className="flex items-center gap-4">
+                        <button 
+                            onClick={() => setIsAdminMode(!isAdminMode)}
+                            className={`px-3 py-1 rounded border text-xs font-mono transition-all ${isAdminMode ? 'bg-red-500/20 border-red-500 text-red-400' : 'border-white/10 text-gray-500 hover:text-white'}`}
+                        >
+                            {isAdminMode ? 'Admin Mode ON' : 'Admin Mode'}
+                        </button>
+
+                        <div className="flex bg-white/5 rounded-lg p-1 border border-white/10">
+                            <button className="px-4 py-2 rounded-md bg-primary-600 text-white text-sm font-bold shadow-lg flex items-center gap-2 hover:bg-primary-500 transition-all">
+                                Pubblica il tuo annuncio <Plus className="w-4 h-4" />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Bento Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {listings.map((item) => (
+                        <div key={item.id} className="group relative bg-dark-800 rounded-2xl overflow-hidden border border-white/5 hover:border-primary-500/30 transition-all duration-500 hover:-translate-y-1 hover:shadow-2xl">
+                            
+                            {/* Image */}
+                            <div className="relative h-64 overflow-hidden cursor-pointer">
+                                <img src={item.img} alt={item.location} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-dark-900 via-transparent to-transparent opacity-80"></div>
+                                
+                                {/* Status Badge */}
+                                <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md text-white text-xs px-2 py-1 rounded border border-white/10">
+                                    {item.status}
+                                </div>
+
+                                {/* Admin Upload Overlay */}
+                                {isAdminMode && (
+                                    <label className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Upload className="w-8 h-8 text-white mb-2" />
+                                        <span className="text-xs text-white font-mono">Change Photo</span>
+                                        <input type="file" className="hidden" accept="image/*" onChange={(e) => e.target.files?.[0] && handleImageUpload(item.id, e.target.files[0])} />
+                                    </label>
+                                )}
+                            </div>
+
+                            {/* Content */}
+                            <div className="absolute bottom-0 w-full p-4">
+                                {/* Price Tag */}
+                                <div className="inline-block bg-orange-500 text-white text-sm font-bold px-3 py-1 rounded-md mb-2 shadow-lg">
+                                    {isAdminMode ? (
+                                        <input 
+                                            value={item.priceLabel} 
+                                            onChange={(e) => updateField(item.id, 'priceLabel', e.target.value)}
+                                            className="bg-transparent border-b border-white/50 outline-none w-24 text-white"
+                                        />
+                                    ) : item.priceLabel}
+                                </div>
+
+                                <h3 className="text-white font-bold text-lg mb-1 truncate">
+                                    {isAdminMode ? (
+                                        <input 
+                                            value={item.location} 
+                                            onChange={(e) => updateField(item.id, 'location', e.target.value)}
+                                            className="bg-transparent border-b border-white/50 outline-none w-full"
+                                        />
+                                    ) : item.location}
+                                </h3>
+
+                                <div className="flex justify-between items-center mt-3 pt-3 border-t border-white/10 text-xs text-gray-400 font-mono">
+                                    <div>
+                                        <span className="block text-gray-600 uppercase tracking-wider mb-0.5">Area:</span>
+                                        <span className="text-white">{item.area} m²</span>
+                                    </div>
+                                    <div className="text-right">
+                                        <span className="block text-gray-600 uppercase tracking-wider mb-0.5">Tipo:</span>
+                                        <span className="text-white capitalize">{item.type}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Publishing Options Section */}
+                <div className="mt-16 grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="glass-panel p-8 rounded-2xl border border-white/10 hover:border-primary-500/30 transition-all group cursor-pointer relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                            <Globe className="w-32 h-32 text-white" />
+                        </div>
+                        <div className="bg-primary-500/20 w-12 h-12 rounded-xl flex items-center justify-center mb-6 text-primary-400 group-hover:scale-110 transition-transform">
+                            <Globe className="w-6 h-6" />
+                        </div>
+                        <h3 className="text-xl font-bold text-white mb-2">Listing Pubblico</h3>
+                        <p className="text-gray-400 text-sm mb-6">Massimizza la visibilità pubblicando il tuo terreno sul marketplace globale. Ideale per vendite veloci.</p>
+                        <div className="flex items-center text-primary-400 text-sm font-bold gap-2">
+                            Inizia ora <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                        </div>
+                    </div>
+
+                    <div className="glass-panel p-8 rounded-2xl border border-white/10 hover:border-accent-500/30 transition-all group cursor-pointer relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                            <Lock className="w-32 h-32 text-white" />
+                        </div>
+                        <div className="bg-accent-500/20 w-12 h-12 rounded-xl flex items-center justify-center mb-6 text-accent-400 group-hover:scale-110 transition-transform">
+                            <Lock className="w-6 h-6" />
+                        </div>
+                        <h3 className="text-xl font-bold text-white mb-2">Off-Market Privato</h3>
+                        <p className="text-gray-400 text-sm mb-6">Vendi con discrezione. Il tuo terreno sarà visibile solo a investitori qualificati e fondi verificati.</p>
+                        <div className="flex items-center text-accent-400 text-sm font-bold gap-2">
+                            Accedi all'area riservata <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    );
+};
+
+const AnalysisPage = ({ initialMode }: { initialMode?: string }) => {
+  const [step, setStep] = useState(1);
+  const [address, setAddress] = useState('');
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanLog, setScanLog] = useState<string[]>([]);
+  const [report, setReport] = useState<AnalysisReport | null>(null);
+  const [financialData, setFinancialData] = useState<any>(null);
+  const [isPremiumUnlocked, setIsPremiumUnlocked] = useState(false);
+  const [activeScenario, setActiveScenario] = useState<ScenarioType>('solar');
+
+  // Calculate financials when report is ready or scenario changes
+  useEffect(() => {
+    if (report) {
+        const data = calculateFinancials(report.data.solar.irradiance, 5000, activeScenario);
+        setFinancialData(data);
+    }
+  }, [report, activeScenario]);
+
+  const handleScan = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    
+    const targetAddress = address.trim() || "Roma, Italia";
+    setAddress(targetAddress);
+    
+    setStep(2);
+    setIsScanning(true);
+    setScanLog([]);
+
+    const addToLog = (msg: string) => setScanLog(prev => [...prev, msg]);
+
+    addToLog(`Inizializzazione satellite...`);
+    await new Promise(r => setTimeout(r, 800));
+
+    addToLog(`Geocoding indirizzo: ${targetAddress}`);
+    const coords = await getCoordinates(targetAddress) || { lat: 41.9028, lng: 12.4964 }; 
+    await new Promise(r => setTimeout(r, 800));
+    
+    addToLog(`Coordinate rilevate: ${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`);
+    addToLog(`Scaricamento DEM (Digital Elevation Model)...`);
+    const elevation = await getRealElevation(coords.lat, coords.lng);
+    await new Promise(r => setTimeout(r, 1000));
+
+    addToLog(`Analisi climatica ERA5 (Precipitazioni/Temp)...`);
+    await getRealWeatherHistory(coords.lat, coords.lng); 
+    await new Promise(r => setTimeout(r, 800));
+
+    addToLog(`Elaborazione Gemini AI...`);
+    
+    const detailedData: DetailedAnalysisData = {
+        morphology: {
+            elevation: elevation,
+            slope: Math.floor(Math.random() * 15),
+            exposure: 'Sud-Est',
+            terrainType: 'Misto/Argilloso'
+        },
+        solar: {
+            irradiance: 1450 + Math.random() * 200,
+            sunHours: 2400,
+            pvPotential: 'Alto',
+            shadingLoss: 2
+        },
+        wind: {
+            speedAvg: 4.5,
+            directionDominant: 'NW',
+            gustPeak: 12
+        },
+        geology: {
+            soilType: 'Limoso',
+            permeability: 'Media',
+            loadBearing: '2.5',
+            clcClass: 'Seminativi'
+        },
+        risks: {
+            seismicZone: '2',
+            floodHazard: 'P1',
+            landslideRisk: 'Assente'
+        },
+        context: {
+            urbanDensity: 'Bassa',
+            nearestRoad: 150,
+            noiseLevel: 35,
+            accessQuality: 8
+        }
+    };
+
+    const aiResult = await generateLandAnalysisSummary(targetAddress, detailedData);
+
+    setReport({
+        id: `REP-${Date.now()}`,
+        address: targetAddress,
+        coordinates: coords,
+        scores: {
+            agriculture: 85,
+            construction: 70,
+            solar: 92,
+            environmental: 88,
+            total: 84
+        },
+        data: detailedData,
+        aiSummary: aiResult.summary,
+        recommendations: aiResult.recommendations,
+        generatedAt: new Date()
+    });
+
+    setIsScanning(false);
+    setStep(3);
+  };
+
+  const handleUnlock = () => {
+      // Simulate payment
+      const btn = document.getElementById('unlock-btn');
+      if(btn) btn.textContent = 'Elaborazione pagamento...';
+      setTimeout(() => {
+          setIsPremiumUnlocked(true);
+      }, 1500);
+  }
+
+  return (
+    <div className="pt-32 pb-20 min-h-screen">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        {step === 1 && (
+          <div className="max-w-2xl mx-auto text-center animate-fade-in">
+            <h1 className="text-4xl font-display font-bold text-white mb-6">
+              Analisi Terreno <span className="text-primary-500">AI-Powered</span>
+            </h1>
+            <p className="text-gray-400 mb-12 text-lg">
+              Inserisci l'indirizzo o le coordinate. I nostri algoritmi incroceranno dati satellitari, 
+              geologici e urbanistici per fornirti un report scientifico in 30 secondi.
+            </p>
+
+            <div className="glass-panel p-8 rounded-2xl border border-white/10">
+              <div className="flex gap-4 mb-6 border-b border-white/10 pb-4">
+                 <button className="text-primary-400 border-b-2 border-primary-500 pb-4 -mb-4 font-medium">Indirizzo</button>
+                 <button className="text-gray-400 hover:text-white transition-colors">Particella Catastale</button>
+                 <button className="text-gray-400 hover:text-white transition-colors">Coordinate GPS</button>
+              </div>
+              
+              <form onSubmit={handleScan} className="relative">
+                <input
+                  type="text"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder="Es: Via Roma 1, Siena"
+                  className="w-full bg-black/50 border border-white/20 rounded-xl px-6 py-4 text-white placeholder:text-gray-600 focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-lg"
+                />
+                <button 
+                  type="submit"
+                  className="absolute right-2 top-2 bg-primary-600 hover:bg-primary-500 text-white px-6 py-2 rounded-lg font-medium transition-all shadow-[0_0_20px_rgba(34,197,94,0.3)] z-10"
+                >
+                  Avvia Scansione Live
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {step === 2 && (
+          <div className="max-w-xl mx-auto text-center pt-12">
+            <div className="relative w-64 h-64 mx-auto mb-12">
+              <div className="absolute inset-0 rounded-full border-4 border-primary-900/30 animate-ping"></div>
+              <div className="absolute inset-0 rounded-full border-2 border-primary-500/50 border-t-primary-500 animate-spin"></div>
+              <div className="absolute inset-4 rounded-full bg-primary-500/10 backdrop-blur-sm flex items-center justify-center">
+                 <Hexagon className="w-16 h-16 text-primary-500 animate-pulse" />
+              </div>
+            </div>
+            
+            <h2 className="text-2xl font-bold text-white mb-6">Analisi in corso...</h2>
+            <div className="bg-black/50 rounded-xl p-6 font-mono text-sm text-left h-48 overflow-hidden border border-white/10 relative">
+              {scanLog.map((log, i) => (
+                <div key={i} className="text-primary-400 mb-2 flex items-center gap-2">
+                   <span className="text-gray-600">[{new Date().toLocaleTimeString()}]</span>
+                   <CheckCircle className="w-3 h-3" /> 
+                   {log}
+                </div>
+              ))}
+              <div className="absolute bottom-0 left-0 w-full h-12 bg-gradient-to-t from-black to-transparent"></div>
+            </div>
+          </div>
+        )}
+
+        {step === 3 && report && financialData && (
+          <div className="animate-fade-in">
+             {/* HEADER */}
+             <div className="flex justify-between items-end mb-10 border-b border-white/10 pb-6">
+                <div>
+                    <div className="flex items-center gap-2 text-primary-500 mb-2">
+                        <CheckCircle className="w-5 h-5" /> Analisi Completata
+                    </div>
+                    <h1 className="text-3xl font-display font-bold text-white">{report.address}</h1>
+                    <p className="text-gray-400 text-sm font-mono mt-1">
+                        LAT: {report.coordinates.lat.toFixed(4)} • LNG: {report.coordinates.lng.toFixed(4)}
+                    </p>
+                </div>
+                <div className="text-right">
+                    <div className="text-5xl font-bold text-white font-display">{report.scores.total}/100</div>
+                    <div className="text-sm text-gray-400 uppercase tracking-widest">AI Score</div>
+                </div>
+             </div>
+
+             {/* GRID LAYOUT */}
+             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+                 
+                 {/* LEFT COL - MAP & DATA */}
+                 <div className="lg:col-span-2 space-y-8">
+                     {/* AI SUMMARY */}
+                     <div className="glass-panel p-6 rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent">
+                         <div className="flex items-center gap-2 mb-4">
+                             <Sparkles className="w-5 h-5 text-accent-500" />
+                             <h3 className="font-bold text-white">Sintesi Gemini AI</h3>
+                         </div>
+                         <p className="text-gray-300 leading-relaxed text-sm md:text-base">
+                             {report.aiSummary}
+                         </p>
+                     </div>
+
+                     {/* CHARTS ROW */}
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                         <div className="glass-panel p-6 rounded-2xl border border-white/10">
+                             <h4 className="text-gray-400 text-sm font-bold mb-4 uppercase">Morfologia</h4>
+                             <div className="space-y-4">
+                                 <div className="flex justify-between">
+                                     <span className="text-gray-400">Altitudine</span>
+                                     <span className="text-white font-mono">{report.data.morphology.elevation} m</span>
+                                 </div>
+                                 <div className="flex justify-between">
+                                     <span className="text-gray-400">Pendenza</span>
+                                     <span className="text-white font-mono">{report.data.morphology.slope}%</span>
+                                 </div>
+                                 <div className="w-full bg-gray-800 h-2 rounded-full overflow-hidden mt-2">
+                                     <div className="bg-blue-500 h-full" style={{ width: `${report.data.morphology.slope * 2}%` }}></div>
+                                 </div>
+                             </div>
+                         </div>
+
+                         <div className="glass-panel p-6 rounded-2xl border border-white/10">
+                             <h4 className="text-gray-400 text-sm font-bold mb-4 uppercase">Irraggiamento</h4>
+                             <div className="h-32">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={SOLAR_DATA}>
+                                        <defs>
+                                            <linearGradient id="colorSun" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#fbbf24" stopOpacity={0.3}/>
+                                                <stop offset="95%" stopColor="#fbbf24" stopOpacity={0}/>
+                                            </linearGradient>
+                                        </defs>
+                                        <Area type="monotone" dataKey="val" stroke="#fbbf24" fillOpacity={1} fill="url(#colorSun)" />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                             </div>
+                             <div className="text-center mt-2 text-xs text-gray-500">Curva Solare Media Giornaliera</div>
+                         </div>
+                     </div>
+                 </div>
+
+                 {/* RIGHT COL - SCORES & RECS */}
+                 <div className="space-y-6">
+                     <div className="glass-panel p-6 rounded-2xl border border-white/10">
+                         <h3 className="font-bold text-white mb-6">Punteggi Settoriali</h3>
+                         <div className="space-y-6">
+                             <div>
+                                 <div className="flex justify-between mb-2 text-sm">
+                                     <span className="text-gray-300">Agricolo</span>
+                                     <span className="text-white font-bold">{report.scores.agriculture}/100</span>
+                                 </div>
+                                 <div className="w-full bg-gray-800 h-2 rounded-full">
+                                     <div className="bg-green-500 h-full rounded-full" style={{ width: `${report.scores.agriculture}%` }}></div>
+                                 </div>
+                             </div>
+                             <div>
+                                 <div className="flex justify-between mb-2 text-sm">
+                                     <span className="text-gray-300">Edificabile</span>
+                                     <span className="text-white font-bold">{report.scores.construction}/100</span>
+                                 </div>
+                                 <div className="w-full bg-gray-800 h-2 rounded-full">
+                                     <div className="bg-blue-500 h-full rounded-full" style={{ width: `${report.scores.construction}%` }}></div>
+                                 </div>
+                             </div>
+                             <div>
+                                 <div className="flex justify-between mb-2 text-sm">
+                                     <span className="text-gray-300">Fotovoltaico</span>
+                                     <span className="text-white font-bold">{report.scores.solar}/100</span>
+                                 </div>
+                                 <div className="w-full bg-gray-800 h-2 rounded-full">
+                                     <div className="bg-yellow-500 h-full rounded-full" style={{ width: `${report.scores.solar}%` }}></div>
+                                 </div>
+                             </div>
+                         </div>
+                     </div>
+
+                     <div className="glass-panel p-6 rounded-2xl border border-white/10">
+                         <h3 className="font-bold text-white mb-4">Raccomandazioni</h3>
+                         <ul className="space-y-3">
+                             {report.recommendations.map((rec, i) => (
+                                 <li key={i} className="flex gap-3 text-sm text-gray-300 bg-white/5 p-3 rounded-lg border border-white/5">
+                                     <TrendingUp className="w-4 h-4 text-primary-500 flex-shrink-0" />
+                                     {rec}
+                                 </li>
+                             ))}
+                         </ul>
+                     </div>
+                 </div>
+             </div>
+
+             {/* PREMIUM SECTION - BUSINESS PLAN */}
+             <div className="mt-20 relative">
+                 {/* Header */}
+                 <div className="flex items-center gap-3 mb-8">
+                     <div className="bg-primary-500 w-1 h-8 rounded-full"></div>
+                     <h2 className="text-2xl font-bold text-white">Strategia & Finanza</h2>
+                     <span className="px-2 py-1 bg-primary-500/20 text-primary-400 text-xs font-bold rounded border border-primary-500/30">PRO PLAN</span>
+                 </div>
+
+                 {/* Constraints Check (Visual) */}
+                 <div className="grid grid-cols-3 gap-4 mb-8">
+                     {[
+                         { label: "PAI Idrogeologico", status: "Verifica OK", color: "text-green-500", icon: CheckCircle },
+                         { label: "Vincolo Paesaggistico", status: "Assente", color: "text-green-500", icon: CheckCircle },
+                         { label: "Urbanistica (PRG)", status: "Verifica in corso", color: "text-yellow-500", icon: AlertTriangle }
+                     ].map((item, i) => (
+                        <div key={i} className={`glass-panel p-4 rounded-xl border border-white/10 flex items-center gap-3 ${!isPremiumUnlocked ? 'blur-sm opacity-50' : ''}`}>
+                            <item.icon className={`w-5 h-5 ${item.color}`} />
+                            <div>
+                                <div className="text-xs text-gray-500 uppercase">{item.label}</div>
+                                <div className={`font-bold ${item.color}`}>{item.status}</div>
+                            </div>
+                        </div>
+                     ))}
+                 </div>
+
+                 {/* Scenario Selector */}
+                 <div className={`flex gap-4 mb-6 ${!isPremiumUnlocked ? 'blur-sm pointer-events-none' : ''}`}>
+                     <button 
+                        onClick={() => setActiveScenario('solar')}
+                        className={`px-4 py-2 rounded-lg border transition-all flex items-center gap-2 ${activeScenario === 'solar' ? 'bg-primary-600 border-primary-500 text-white' : 'bg-transparent border-white/20 text-gray-400'}`}
+                     >
+                         <Sun className="w-4 h-4" /> Agri-Voltaico
+                     </button>
+                     <button 
+                        onClick={() => setActiveScenario('glamping')}
+                        className={`px-4 py-2 rounded-lg border transition-all flex items-center gap-2 ${activeScenario === 'glamping' ? 'bg-primary-600 border-primary-500 text-white' : 'bg-transparent border-white/20 text-gray-400'}`}
+                     >
+                         <Tent className="w-4 h-4" /> Glamping Green
+                     </button>
+                     <button 
+                        onClick={() => setActiveScenario('construction')}
+                        className={`px-4 py-2 rounded-lg border transition-all flex items-center gap-2 ${activeScenario === 'construction' ? 'bg-primary-600 border-primary-500 text-white' : 'bg-transparent border-white/20 text-gray-400'}`}
+                     >
+                         <Building className="w-4 h-4" /> Residenziale
+                     </button>
+                 </div>
+
+                 {/* Content Container */}
+                 <div className="relative">
+                     
+                     {/* PAYWALL OVERLAY */}
+                     {!isPremiumUnlocked && (
+                         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60 backdrop-blur-md rounded-3xl border border-white/10">
+                             <div className="bg-black p-4 rounded-full border border-primary-500/50 mb-4 shadow-[0_0_30px_rgba(34,197,94,0.2)]">
+                                 <Lock className="w-8 h-8 text-primary-500" />
+                             </div>
+                             <h3 className="text-2xl font-bold text-white mb-2">Sblocca Report Completo</h3>
+                             <p className="text-gray-400 mb-8 text-center max-w-md">
+                                 Accedi al Business Plan finanziario, scarica i file DXF per il tuo architetto e vedi l'analisi vincolistica completa.
+                             </p>
+                             <div className="flex gap-4">
+                                <button 
+                                    id="unlock-btn"
+                                    onClick={handleUnlock}
+                                    className="px-8 py-3 bg-primary-600 hover:bg-primary-500 text-white font-bold rounded-xl shadow-lg transition-all"
+                                >
+                                    Sblocca Ora (€ 49)
+                                </button>
+                                <button 
+                                    onClick={() => setIsPremiumUnlocked(true)}
+                                    className="px-8 py-3 bg-white/5 hover:bg-white/10 text-white font-bold rounded-xl border border-white/10 transition-all"
+                                >
+                                    Vedi Esempio
+                                </button>
+                             </div>
+                         </div>
+                     )}
+
+                     {/* BLURRED CONTENT */}
+                     <div className={`grid grid-cols-1 lg:grid-cols-3 gap-8 ${!isPremiumUnlocked ? 'filter blur-md select-none opacity-30' : ''}`}>
+                         
+                         {/* Financial Metrics */}
+                         <div className="lg:col-span-2 glass-panel p-8 rounded-3xl border border-white/10 bg-gradient-to-br from-primary-900/10 to-transparent">
+                             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+                                 <div>
+                                     <div className="text-gray-400 text-xs uppercase tracking-widest mb-1">CAPEX</div>
+                                     <div className="text-2xl font-bold text-white font-mono">€ {(financialData.capex / 1000).toFixed(0)}k</div>
+                                 </div>
+                                 <div>
+                                     <div className="text-gray-400 text-xs uppercase tracking-widest mb-1">{financialData.metricLabel}</div>
+                                     <div className="text-2xl font-bold text-white font-mono">{financialData.mainMetric}</div>
+                                 </div>
+                                 <div>
+                                     <div className="text-gray-400 text-xs uppercase tracking-widest mb-1">ROI (20Y)</div>
+                                     <div className="text-2xl font-bold text-green-400 font-mono">{financialData.roi}%</div>
+                                 </div>
+                                 <div>
+                                     <div className="text-gray-400 text-xs uppercase tracking-widest mb-1">Payback</div>
+                                     <div className="text-2xl font-bold text-white font-mono">{financialData.paybackYear}</div>
+                                 </div>
+                             </div>
+                             
+                             <div className="h-64 w-full">
+                                 <ResponsiveContainer width="100%" height="100%">
+                                     <BarChart data={financialData.cashFlow}>
+                                         <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
+                                         <XAxis dataKey="year" stroke="#666" fontSize={12} />
+                                         <YAxis stroke="#666" fontSize={12} />
+                                         <Tooltip 
+                                            contentStyle={{ backgroundColor: '#18181b', borderColor: '#333', color: '#fff' }}
+                                            itemStyle={{ color: '#22c55e' }}
+                                         />
+                                         <Bar dataKey="cash" fill="#22c55e" radius={[4, 4, 0, 0]} />
+                                     </BarChart>
+                                 </ResponsiveContainer>
+                             </div>
+                             <div className="text-center mt-4 text-xs text-gray-500">Proiezione Cash Flow Cumulativo (20 Anni)</div>
+                         </div>
+
+                         {/* Download & Tools */}
+                         <div className="space-y-4">
+                             <div className="glass-panel p-6 rounded-2xl border border-white/10">
+                                 <h4 className="font-bold text-white mb-4 flex items-center gap-2">
+                                     <FileText className="w-4 h-4 text-primary-500" /> Export Tecnico
+                                 </h4>
+                                 <div className="space-y-3">
+                                     <button 
+                                        onClick={() => generateAndDownloadDXF(5000)}
+                                        className="w-full flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-primary-500/20 border border-white/10 hover:border-primary-500/50 transition-all group"
+                                     >
+                                         <div className="flex items-center gap-3">
+                                             <div className="bg-black/50 p-2 rounded text-blue-400 font-mono text-xs">DXF</div>
+                                             <span className="text-sm text-gray-300 group-hover:text-white">Planimetria CAD</span>
+                                         </div>
+                                         <Download className="w-4 h-4 text-gray-500 group-hover:text-primary-500" />
+                                     </button>
+
+                                     <button 
+                                        onClick={() => generateAndDownloadCSV(report, financialData)}
+                                        className="w-full flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-primary-500/20 border border-white/10 hover:border-primary-500/50 transition-all group"
+                                     >
+                                         <div className="flex items-center gap-3">
+                                             <div className="bg-black/50 p-2 rounded text-green-400 font-mono text-xs">CSV</div>
+                                             <span className="text-sm text-gray-300 group-hover:text-white">Business Plan</span>
+                                         </div>
+                                         <Download className="w-4 h-4 text-gray-500 group-hover:text-primary-500" />
+                                     </button>
+                                 </div>
+                             </div>
+
+                             <div className="glass-panel p-6 rounded-2xl border border-white/10">
+                                 <h4 className="font-bold text-white mb-4 flex items-center gap-2">
+                                     <ShieldCheck className="w-4 h-4 text-primary-500" /> Certificazioni
+                                 </h4>
+                                 <button 
+                                    onClick={() => generateAndDownloadReport(report)}
+                                    className="w-full py-3 bg-primary-600/20 hover:bg-primary-600/30 text-primary-400 border border-primary-600/30 rounded-xl transition-all text-sm font-bold flex justify-center items-center gap-2"
+                                 >
+                                     <Printer className="w-4 h-4" /> Scarica Report Tecnico
+                                 </button>
+                             </div>
+                         </div>
+                     </div>
+                 </div>
+             </div>
+          </div>
+        )}
 
       </div>
     </div>
   );
 };
 
-const FeaturedSection = () => {
-  const [listings, setListings] = useState(MOCK_FEATURED_LISTINGS_FALLBACK);
-  const [isAdminMode, setIsAdminMode] = useState(false);
+const MarketplacePage = () => {
+  const [isSellModalOpen, setIsSellModalOpen] = useState(false);
+  const [listings, setListings] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Load from DB on mount
+  // Sell Form State
+  const [sellForm, setSellForm] = useState({
+    title: '',
+    price: '',
+    location: '',
+    type: 'Agricolo',
+    size: '',
+    description: ''
+  });
+
   useEffect(() => {
-    const loadData = async () => {
-        if (isSupabaseConfigured()) {
-            try {
-                const { data, error } = await supabase!.from('listings').select('*').eq('is_premium', true).limit(4);
-                if (!error && data && data.length > 0) {
-                    // Map DB to UI format
-                    const mapped = data.map((item: any) => ({
-                        id: item.id,
-                        location: item.location,
-                        price: item.price,
-                        area: item.size_sqm,
-                        type: item.type,
-                        status: 'In vendita',
-                        img: item.image_url,
-                        priceLabel: `€ ${item.price.toLocaleString()}`
-                    }));
-                    setListings(mapped);
-                }
-            } catch (e) {
-                console.error("Error loading featured", e);
-            }
-        } else {
-            // Local storage fallback
-             const saved = localStorage.getItem('featured_listings');
-             if (saved) setListings(JSON.parse(saved));
-        }
-    };
-    loadData();
+    fetchListings();
   }, []);
 
-  const handleUpdate = (id: string, field: string, value: any) => {
-    const updated = listings.map(l => l.id === id ? { ...l, [field]: value } : l);
-    setListings(updated);
-    localStorage.setItem('featured_listings', JSON.stringify(updated));
-  };
-
-  const handleImageUpload = (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        handleUpdate(id, 'img', reader.result);
-      };
-      reader.readAsDataURL(file);
+  async function fetchListings() {
+    setIsLoading(true);
+    try {
+        if (supabase) {
+            const { data, error } = await supabase.from('listings').select('*').order('created_at', { ascending: false });
+            if (!error && data) {
+                setListings(data);
+            } else {
+                setListings(MOCK_LISTINGS_FALLBACK); // Fallback if table doesn't exist yet
+            }
+        } else {
+            setListings(MOCK_LISTINGS_FALLBACK); // Demo mode
+        }
+    } catch (e) {
+        console.error("Error fetching", e);
+        setListings(MOCK_LISTINGS_FALLBACK);
+    } finally {
+        setIsLoading(false);
     }
-  };
+  }
 
-  const resetDb = () => {
-    localStorage.removeItem('featured_listings');
-    localStorage.removeItem('listings');
-    window.location.reload();
-  };
+  async function handlePublish(e: React.FormEvent) {
+      e.preventDefault();
+      
+      const newListing = {
+          title: sellForm.title,
+          price: parseFloat(sellForm.price),
+          location: sellForm.location,
+          type: sellForm.type,
+          size_sqm: parseFloat(sellForm.size),
+          description: sellForm.description,
+          image_url: `https://source.unsplash.com/random/800x600/?land,${sellForm.type}`, // Random image for demo
+          ai_score: Math.floor(Math.random() * 30) + 70, // Mock score
+          features: ['Nuovo', 'Verificato']
+      };
+
+      if (supabase) {
+          const { error } = await supabase.from('listings').insert([newListing]);
+          if (error) {
+              alert("Errore pubblicazione: " + error.message);
+          } else {
+              setIsSellModalOpen(false);
+              fetchListings(); // Refresh
+          }
+      } else {
+          // Demo local update
+          setListings([ { ...newListing, id: Date.now().toString() }, ...listings ]);
+          setIsSellModalOpen(false);
+          alert("Annuncio pubblicato (Modalità Demo - Database non connesso)");
+      }
+  }
 
   return (
-    <div className="py-16 bg-dark-900 border-t border-white/5">
+    <div className="pt-32 pb-20 min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
+        <div className="flex justify-between items-center mb-12">
           <div>
-            <h2 className="text-3xl md:text-4xl font-display font-bold text-white mb-2">
-              Vuoi mostrare qui la tua proprietà?
-            </h2>
+            <h1 className="text-4xl font-display font-bold text-white mb-2">Marketplace</h1>
             <p className="text-gray-400">
-              I terreni migliori d'Italia scelti dall'AI. Dai visibilità al tuo lotto o esplora le opportunità.
+                {!isSupabaseConfigured() && <span className="text-orange-500 font-bold mr-2">[DEMO MODE]</span>}
+                Terreni verificati con analisi AI inclusa.
             </p>
           </div>
-          
-          <div className="flex items-center gap-4">
-             {/* Admin Toggle */}
-            <button 
-              onClick={() => setIsAdminMode(!isAdminMode)}
-              className={`px-4 py-2 rounded-lg border text-xs font-mono transition-all ${isAdminMode ? 'bg-red-500/20 border-red-500 text-red-400' : 'bg-white/5 border-white/10 text-gray-500'}`}
-            >
-              {isAdminMode ? 'Admin Mode ON' : 'Admin Mode'}
-            </button>
-
-            {/* Main CTA */}
-            <button className="bg-primary-600 hover:bg-primary-500 text-white px-6 py-3 rounded-lg font-bold transition-all flex items-center gap-2 shadow-lg hover:shadow-primary-500/20">
-              Pubblica il tuo annuncio <Plus className="w-4 h-4" />
-            </button>
-          </div>
+          <button 
+            onClick={() => setIsSellModalOpen(true)}
+            className="bg-white text-black px-6 py-3 rounded-full font-bold hover:bg-gray-200 transition-colors flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" /> Vendi il tuo terreno
+          </button>
         </div>
 
-        {/* Featured Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-          {listings.map((item) => (
-            <div key={item.id} className="group relative bg-dark-800 rounded-xl overflow-hidden border border-white/5 hover:border-primary-500/50 transition-all duration-500 hover:-translate-y-2 shadow-2xl">
-              
-              {/* Image Container */}
-              <div className="relative h-64 overflow-hidden">
-                <img 
-                  src={item.img} 
-                  alt={item.location} 
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-80"></div>
-                
-                {/* Status Badge */}
-                <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md border border-white/10 text-white text-xs font-medium px-3 py-1 rounded-full">
-                  {item.status}
-                </div>
+        {/* Filters Bar */}
+        <div className="glass-panel p-4 rounded-xl mb-12 flex flex-wrap gap-4 border border-white/10">
+            <div className="relative flex-1 min-w-[200px]">
+                <Search className="absolute left-3 top-3 h-5 w-5 text-gray-500" />
+                <input type="text" placeholder="Cerca per località..." className="w-full bg-black/40 border border-white/10 rounded-lg pl-10 pr-4 py-2 text-white focus:outline-none focus:border-primary-500" />
+            </div>
+            <select className="bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none">
+                <option>Tutti i tipi</option>
+                <option>Edificabile</option>
+                <option>Agricolo</option>
+            </select>
+            <select className="bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none">
+                <option>Prezzo: Crescente</option>
+                <option>Prezzo: Decrescente</option>
+            </select>
+        </div>
 
-                {/* Price Tag */}
-                <div className="absolute bottom-4 left-4">
-                   {isAdminMode ? (
-                      <input 
-                        type="text" 
-                        value={item.priceLabel}
-                        onChange={(e) => handleUpdate(item.id, 'priceLabel', e.target.value)}
-                        className="bg-primary-500 text-white font-bold px-3 py-1 rounded shadow-lg w-32 text-sm"
-                      />
-                   ) : (
-                      <span className="bg-primary-500 text-white font-bold px-3 py-1 rounded shadow-lg text-sm">
-                        {item.priceLabel}
-                      </span>
-                   )}
-                </div>
-
-                {/* Admin Upload Overlay */}
-                {isAdminMode && (
-                  <label className="absolute inset-0 flex items-center justify-center bg-black/50 cursor-pointer opacity-0 hover:opacity-100 transition-opacity">
-                    <input type="file" className="hidden" onChange={(e) => handleImageUpload(item.id, e)} accept="image/*" />
-                    <Upload className="text-white w-8 h-8" />
-                  </label>
-                )}
-              </div>
-
-              {/* Info */}
-              <div className="p-4 relative">
-                 {isAdminMode ? (
-                    <input 
-                      type="text" 
-                      value={item.location}
-                      onChange={(e) => handleUpdate(item.id, 'location', e.target.value)}
-                      className="bg-transparent border-b border-white/20 text-white font-bold w-full mb-1"
+        {/* Grid */}
+        {isLoading ? (
+            <div className="text-center py-20 text-gray-500">Caricamento terreni...</div>
+        ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {listings.map((listing) => (
+                <div key={listing.id} className="glass-card rounded-2xl overflow-hidden border border-white/10 hover:border-primary-500/50 transition-all group hover:-translate-y-1">
+                <div className="h-48 overflow-hidden relative">
+                    <img 
+                        src={listing.image_url || listing.imageUrl} 
+                        alt={listing.title} 
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
                     />
-                 ) : (
-                    <h3 className="text-white font-bold text-lg mb-1">{item.location}</h3>
-                 )}
-                
-                <div className="flex justify-between items-center text-xs text-gray-400 mt-3 pt-3 border-t border-white/5">
-                  <div>
-                    <span className="block text-gray-600 uppercase tracking-wider text-[10px]">Area</span>
-                    <span className="text-gray-300">{item.area} m²</span>
-                  </div>
-                  <div className="text-right">
-                    <span className="block text-gray-600 uppercase tracking-wider text-[10px]">Tipo</span>
-                    <span className="text-gray-300 capitalize">{item.type}</span>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          ))}
-        </div>
-
-        {/* Dual Choice - Publish Options */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
-            {/* Option 1: Public */}
-            <div className="relative group p-8 rounded-2xl bg-gradient-to-br from-dark-800 to-black border border-white/5 hover:border-primary-500/30 transition-all cursor-pointer overflow-hidden">
-                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <Globe className="w-32 h-32 text-primary-500" />
-                </div>
-                <div className="relative z-10">
-                    <div className="w-12 h-12 rounded-full bg-primary-500/10 flex items-center justify-center mb-6 text-primary-500 group-hover:scale-110 transition-transform">
-                        <Globe className="w-6 h-6" />
+                    <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-white border border-white/10">
+                        AI Score: <span className="text-primary-400">{listing.ai_score || listing.aiScore}</span>
                     </div>
-                    <h3 className="text-2xl font-bold text-white mb-2">Listing Pubblico</h3>
-                    <p className="text-gray-400 mb-6">
-                        Massima visibilità. Il tuo terreno viene indicizzato su Google, condiviso sui social e mostrato a migliaia di investitori.
-                    </p>
-                    <span className="text-primary-500 font-bold flex items-center gap-2 text-sm group-hover:translate-x-2 transition-transform">
-                        Inizia ora <ArrowRight className="w-4 h-4" />
-                    </span>
                 </div>
-            </div>
-
-            {/* Option 2: Private / Off-Market */}
-            <div className="relative group p-8 rounded-2xl bg-gradient-to-br from-dark-800 to-black border border-white/5 hover:border-accent-500/30 transition-all cursor-pointer overflow-hidden">
-                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <Lock className="w-32 h-32 text-accent-500" />
-                </div>
-                <div className="relative z-10">
-                    <div className="w-12 h-12 rounded-full bg-accent-500/10 flex items-center justify-center mb-6 text-accent-500 group-hover:scale-110 transition-transform">
-                        <Lock className="w-6 h-6" />
+                <div className="p-6">
+                    <div className="flex justify-between items-start mb-4">
+                        <div>
+                            <span className="text-xs font-bold text-primary-400 uppercase tracking-wider mb-1 block">{listing.type}</span>
+                            <h3 className="text-xl font-bold text-white mb-1">{listing.title}</h3>
+                            <div className="flex items-center gap-1 text-gray-400 text-sm">
+                                <MapPin className="w-3 h-3" /> {listing.location}
+                            </div>
+                        </div>
                     </div>
-                    <h3 className="text-2xl font-bold text-white mb-2">Off-Market Privato</h3>
-                    <p className="text-gray-400 mb-6">
-                        Discrezione totale. Il terreno è visibile solo a investitori qualificati con NDA firmato. Nessuna foto pubblica.
-                    </p>
-                    <span className="text-accent-500 font-bold flex items-center gap-2 text-sm group-hover:translate-x-2 transition-transform">
-                        Richiedi accesso <ArrowRight className="w-4 h-4" />
-                    </span>
-                </div>
-            </div>
+                    
+                    <p className="text-gray-400 text-sm mb-6 line-clamp-2">{listing.description}</p>
+                    
+                    <div className="flex items-center gap-4 mb-6 text-sm text-gray-300">
+                        <div className="flex items-center gap-1 bg-white/5 px-2 py-1 rounded">
+                            <LandPlot className="w-4 h-4" /> {listing.size_sqm || listing.sizeSqm} mq
+                        </div>
+                        {(listing.features || []).slice(0,2).map((f: string, i: number) => (
+                            <div key={i} className="bg-white/5 px-2 py-1 rounded">{f}</div>
+                        ))}
+                    </div>
 
-        </div>
-        
-        {isAdminMode && (
-            <div className="mt-8 text-center">
-                <button onClick={resetDb} className="text-red-500 text-xs hover:underline">Reset Database Locale</button>
+                    <div className="flex justify-between items-center pt-4 border-t border-white/10">
+                        <div className="text-2xl font-bold text-white font-display">€ {(listing.price || 0).toLocaleString()}</div>
+                        <button className="text-primary-400 hover:text-white font-bold text-sm transition-colors">
+                            Dettagli AI →
+                        </button>
+                    </div>
+                </div>
+                </div>
+            ))}
+            </div>
+        )}
+
+        {/* SELL MODAL */}
+        {isSellModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                <div className="bg-dark-900 border border-white/20 rounded-2xl w-full max-w-lg p-8 relative shadow-2xl">
+                    <button 
+                        onClick={() => setIsSellModalOpen(false)}
+                        className="absolute top-4 right-4 text-gray-400 hover:text-white"
+                    >
+                        <X className="w-6 h-6" />
+                    </button>
+                    
+                    <h2 className="text-2xl font-bold text-white mb-6">Pubblica il tuo Terreno</h2>
+                    
+                    <form onSubmit={handlePublish} className="space-y-4">
+                        <div>
+                            <label className="block text-sm text-gray-400 mb-1">Titolo Annuncio</label>
+                            <input required type="text" className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white outline-none focus:border-primary-500"
+                                value={sellForm.title} onChange={e => setSellForm({...sellForm, title: e.target.value})}
+                            />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm text-gray-400 mb-1">Prezzo (€)</label>
+                                <input required type="number" className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white outline-none focus:border-primary-500"
+                                    value={sellForm.price} onChange={e => setSellForm({...sellForm, price: e.target.value})}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm text-gray-400 mb-1">Superficie (mq)</label>
+                                <input required type="number" className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white outline-none focus:border-primary-500"
+                                    value={sellForm.size} onChange={e => setSellForm({...sellForm, size: e.target.value})}
+                                />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm text-gray-400 mb-1">Città</label>
+                                <input required type="text" className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white outline-none focus:border-primary-500"
+                                    value={sellForm.location} onChange={e => setSellForm({...sellForm, location: e.target.value})}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm text-gray-400 mb-1">Tipologia</label>
+                                <select className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white outline-none focus:border-primary-500"
+                                    value={sellForm.type} onChange={e => setSellForm({...sellForm, type: e.target.value})}
+                                >
+                                    <option>Agricolo</option>
+                                    <option>Edificabile</option>
+                                    <option>Industriale</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm text-gray-400 mb-1">Descrizione</label>
+                            <textarea className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-white outline-none focus:border-primary-500 h-24"
+                                value={sellForm.description} onChange={e => setSellForm({...sellForm, description: e.target.value})}
+                            ></textarea>
+                        </div>
+                        
+                        <button type="submit" className="w-full bg-primary-600 hover:bg-primary-500 text-white font-bold py-3 rounded-lg mt-4 transition-all">
+                            Pubblica Gratis
+                        </button>
+                    </form>
+                </div>
             </div>
         )}
 
@@ -964,1125 +1765,121 @@ const FeaturedSection = () => {
   );
 };
 
-// --- PAGES ---
-
-const HomePage = ({ onStartAnalysis }: { onStartAnalysis: () => void }) => (
-  <div className="min-h-screen pt-20">
-    {/* Hero Section */}
-    <div className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
-      <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1500382017468-9049fed747ef?ixlib=rb-4.0.3&auto=format&fit=crop&w=2500&q=80')] bg-cover bg-center opacity-30"></div>
-      <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/40 to-black"></div>
-      
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          
-          {/* Left Column: Text */}
-          <div className="text-left space-y-8">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-primary-400 text-sm font-medium animate-fade-in">
-              <Sparkles className="w-4 h-4" />
-              <span>La prima AI per il Land Banking</span>
-            </div>
-            
-            <h1 className="text-4xl md:text-6xl font-display font-bold text-white leading-[1.1] tracking-tight mb-6">
-              Decodifica il valore del tuo terreno. <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-primary-600">
-                Vendi a chi costruisce.
-              </span>
-            </h1>
-            
-            <p className="text-lg md:text-xl text-gray-300 max-w-xl leading-relaxed mb-8">
-               Analisi AI istantanea su edificabilità e fotovoltaico. Connettiamo il tuo terreno direttamente con costruttori e fondi di investimento pronti ad acquistare.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-4 pt-4">
-              <button 
-                onClick={onStartAnalysis}
-                className="px-8 py-4 bg-primary-600 hover:bg-primary-500 text-white rounded-lg font-bold text-lg transition-all shadow-[0_0_30px_-10px_rgba(34,197,94,0.6)] hover:shadow-[0_0_50px_-10px_rgba(34,197,94,0.8)] hover:-translate-y-1 flex items-center justify-center gap-2"
-              >
-                <Zap className="w-5 h-5" />
-                Analizza Gratis con AI
-              </button>
-              <button className="px-8 py-4 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-lg font-medium text-lg backdrop-blur-md transition-all flex items-center justify-center gap-2 group">
-                Esplora Marketplace <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </button>
-            </div>
-          </div>
-
-          {/* Right Column: Widget */}
-          <div className="hidden lg:block">
-            <SearchWidget onSearch={() => {}} />
-          </div>
-        </div>
-
-        {/* Stats Bar - Bottom HUD */}
-        <div className="absolute bottom-0 left-0 w-full border-t border-white/10 bg-black/40 backdrop-blur-xl">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-white/10">
-              {[
-                { label: "Dataset Analizzati", val: "45 TB+" },
-                { label: "Terreni Mappati", val: "12.5 K" },
-                { label: "Precisione AI", val: "98.9%" },
-                { label: "Investitori Attivi", val: "3.2 K" }
-              ].map((stat, i) => (
-                <div key={i} className="py-6 text-center group cursor-default hover:bg-white/5 transition-colors relative overflow-hidden">
-                  <div className="text-2xl md:text-3xl font-display font-bold text-white group-hover:text-primary-400 transition-colors">{stat.val}</div>
-                  <div className="text-xs text-gray-500 uppercase tracking-widest mt-1">{stat.label}</div>
-                  <div className="absolute bottom-0 left-0 w-full h-0.5 bg-primary-500 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    {/* Featured Listings & Publishing */}
-    <FeaturedSection />
-
-    {/* Value Proposition Comparison */}
-    <ValuePropositionSection />
-
-  </div>
-);
-
-const AnalysisPage = () => {
-  const [address, setAddress] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [scanStep, setScanStep] = useState('');
-  const [result, setResult] = useState<AnalysisReport | null>(null);
-  const [activeTab, setActiveTab] = useState<'address' | 'cadastral' | 'gps'>('address');
-  
-  // State for Premium/Financial features
-  const [isPremiumUnlocked, setIsPremiumUnlocked] = useState(false);
-  const [financialData, setFinancialData] = useState<any>(null);
-  const [selectedScenario, setSelectedScenario] = useState<ScenarioType>('solar');
-
-  const handleScan = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    
-    const searchAddress = address.trim() || "Roma, Piazza del Colosseo";
-
-    setLoading(true);
-    setProgress(0);
-    setResult(null);
-    setIsPremiumUnlocked(false); // Reset premium state on new scan
-
-    const phases = [
-      "Inizializzazione satelliti Copernicus...",
-      "Scansione altimetrica DEM (Digital Elevation Model)...",
-      "Analisi climatica ERA5 (1990-2024)...",
-      "Verifica vincoli idrogeologici PAI...",
-      "Calcolo irraggiamento solare PVGIS...",
-      "Generazione report AI..."
-    ];
-
-    // Simulation loop
-    for (let i = 0; i < phases.length; i++) {
-      setScanStep(phases[i]);
-      await new Promise(r => setTimeout(r, 800));
-      setProgress((prev) => prev + (100 / phases.length));
-    }
-
-    try {
-      // 1. Get Coordinates
-      const coords = await getCoordinates(searchAddress);
-      const lat = coords?.lat || 41.9028;
-      const lng = coords?.lng || 12.4964;
-      const displayName = coords?.display_name || searchAddress;
-
-      // 2. Get Real Data
-      const elevation = await getRealElevation(lat, lng);
-      // const weather = await getRealWeatherHistory(lat, lng); // Not used in main view yet but fetched
-
-      // 3. Construct Detailed Data
-      const detailedData: DetailedAnalysisData = {
-        morphology: {
-          elevation: elevation,
-          slope: Math.floor(Math.random() * 15), // Still simulated for now
-          exposure: 'Sud-Est',
-          terrainType: 'Seminativo',
-        },
-        solar: {
-          irradiance: 1450 + Math.floor(Math.random() * 200), // kWh/m2
-          sunHours: 2600,
-          pvPotential: 'Alto',
-          shadingLoss: 2
-        },
-        wind: {
-          speedAvg: 4.5,
-          directionDominant: 'NW',
-          gustPeak: 12
-        },
-        geology: {
-          soilType: 'Argilloso-Limoso',
-          permeability: 'Media',
-          loadBearing: '2.5',
-          clcClass: '211 - Seminativi'
-        },
-        risks: {
-          seismicZone: '2',
-          floodHazard: 'P1',
-          landslideRisk: 'Assente'
-        },
-        context: {
-          urbanDensity: 'Bassa',
-          nearestRoad: 450,
-          noiseLevel: 35,
-          accessQuality: 8
-        }
-      };
-
-      // 4. Call AI for Summary
-      const aiResponse = await generateLandAnalysisSummary(displayName, detailedData);
-
-      // 5. Create Final Report Object
-      const mockReport: AnalysisReport = {
-        id: `REP-${Math.floor(Math.random() * 10000)}`,
-        address: displayName,
-        coordinates: { lat, lng },
-        scores: {
-          agriculture: 85,
-          construction: 60,
-          solar: 92,
-          environmental: 78,
-          total: 82
-        },
-        data: detailedData,
-        aiSummary: aiResponse.summary,
-        recommendations: aiResponse.recommendations,
-        generatedAt: new Date()
-      };
-
-      setResult(mockReport);
-      
-      // 6. Calculate Financials (Locked initially)
-      const financials = calculateFinancials(detailedData.solar.irradiance, 5000, 'solar'); // Default to solar
-      setFinancialData(financials);
-
-    } catch (error) {
-        console.error("Scan failed", error);
-        // Fallback to avoid UI freeze
-        setResult({
-            id: 'ERR-001',
-            address: searchAddress,
-            coordinates: { lat: 41.9, lng: 12.5 },
-            scores: { agriculture: 50, construction: 50, solar: 50, environmental: 50, total: 50 },
-            data: {
-                morphology: { elevation: 100, slope: 5, exposure: 'S', terrainType: 'Misto' },
-                solar: { irradiance: 1300, sunHours: 2000, pvPotential: 'Medio', shadingLoss: 5 },
-                wind: { speedAvg: 3, directionDominant: 'N', gustPeak: 10 },
-                geology: { soilType: 'Misto', permeability: 'Media', loadBearing: '2', clcClass: 'N/A' },
-                risks: { seismicZone: '2', floodHazard: 'P2', landslideRisk: 'Assente' },
-                context: { urbanDensity: 'Media', nearestRoad: 100, noiseLevel: 40, accessQuality: 6 }
-            },
-            aiSummary: "Errore nella connessione ai servizi. Dati simulati.",
-            recommendations: ["Riprovare la scansione"],
-            generatedAt: new Date()
-        });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Handle Scenario Change
-  const handleScenarioChange = (scenario: ScenarioType) => {
-    setSelectedScenario(scenario);
-    if (result) {
-        // Recalculate based on new scenario
-        const financials = calculateFinancials(result.data.solar.irradiance, 5000, scenario);
-        setFinancialData(financials);
-    }
-  };
-
-  // Unlock Premium
-  const handleUnlock = () => {
-     setLoading(true);
-     setTimeout(() => {
-         setLoading(false);
-         setIsPremiumUnlocked(true);
-     }, 1500);
-  };
-
-  return (
-    <div className="min-h-screen pt-24 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-      {!result && !loading && (
-        <div className="max-w-3xl mx-auto text-center animate-fade-in">
-          <h1 className="text-4xl md:text-5xl font-display font-bold text-white mb-6">
-            Analisi Terreno <span className="text-primary-500">AI-Powered</span>
-          </h1>
-          <p className="text-gray-400 text-lg mb-12">
-            Inserisci i dati del tuo terreno. I nostri algoritmi incroceranno dati satellitari, geologici e climatici per generare un report professionale.
-          </p>
-
-          <div className="bg-dark-900 border border-white/10 rounded-2xl p-6 shadow-2xl">
-            {/* Input Tabs */}
-            <div className="flex gap-4 mb-6 border-b border-white/5 pb-2">
-              <button 
-                onClick={() => setActiveTab('address')}
-                className={`pb-2 text-sm font-medium transition-colors ${activeTab === 'address' ? 'text-primary-500 border-b-2 border-primary-500' : 'text-gray-400 hover:text-white'}`}
-              >
-                Indirizzo
-              </button>
-              <button 
-                 onClick={() => setActiveTab('cadastral')}
-                 className={`pb-2 text-sm font-medium transition-colors ${activeTab === 'cadastral' ? 'text-primary-500 border-b-2 border-primary-500' : 'text-gray-400 hover:text-white'}`}
-              >
-                Dati Catastali
-              </button>
-              <button 
-                 onClick={() => setActiveTab('gps')}
-                 className={`pb-2 text-sm font-medium transition-colors ${activeTab === 'gps' ? 'text-primary-500 border-b-2 border-primary-500' : 'text-gray-400 hover:text-white'}`}
-              >
-                Coordinate GPS
-              </button>
-            </div>
-
-            <div className="flex flex-col md:flex-row gap-4 relative">
-               {/* Glow Effect blocker fixed with pointer-events-none */}
-              <div className="absolute -inset-1 bg-primary-500/20 blur-xl rounded-lg opacity-50 pointer-events-none"></div>
-              
-              <input
-                type="text"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder={activeTab === 'address' ? "Es. Via Appia Antica 120, Roma" : activeTab === 'cadastral' ? "Comune, Foglio, Particella" : "Latitudine, Longitudine"}
-                className="flex-1 bg-dark-950 border border-white/10 rounded-lg px-4 py-4 text-white placeholder:text-gray-600 focus:ring-2 focus:ring-primary-500 outline-none relative z-10"
-              />
-              <button
-                onClick={(e) => handleScan(e)}
-                className="bg-primary-600 hover:bg-primary-500 text-white font-bold px-8 py-4 rounded-lg transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-primary-500/25 active:scale-95 relative z-10 cursor-pointer"
-              >
-                <Zap className="w-5 h-5" />
-                Avvia Scansione Live
-              </button>
-            </div>
-            <p className="text-xs text-gray-500 mt-4 text-left flex items-center gap-2">
-              <ShieldCheck className="w-3 h-3" /> Dati protetti e anonimizzati. Analisi basata su Copernicus DEM e OpenMeteo APIs.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {loading && (
-        <div className="max-w-2xl mx-auto text-center py-20">
-          <div className="relative w-32 h-32 mx-auto mb-8">
-            <div className="absolute inset-0 border-4 border-primary-500/20 rounded-full"></div>
-            <div className="absolute inset-0 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
-            <Hexagon className="absolute inset-0 m-auto text-primary-500 w-12 h-12 animate-pulse" />
-          </div>
-          <h3 className="text-2xl font-bold text-white mb-2">{scanStep}</h3>
-          <p className="text-primary-400 font-mono">{Math.round(progress)}% Completato</p>
-          <div className="w-full bg-white/5 h-2 rounded-full mt-6 overflow-hidden">
-            <div 
-              className="bg-primary-500 h-full transition-all duration-300 ease-out"
-              style={{ width: `${progress}%` }}
-            ></div>
-          </div>
-        </div>
-      )}
-
-      {result && !loading && (
-        <div className="animate-fade-in">
-          {/* Header Result */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-            <div>
-              <div className="flex items-center gap-2 text-primary-400 mb-1">
-                <CheckCircle className="w-4 h-4" />
-                <span className="text-sm font-mono">ANALISI COMPLETATA</span>
-              </div>
-              <h2 className="text-3xl font-bold text-white">{result.address}</h2>
-              <p className="text-gray-500 text-sm">GPS: {result.coordinates.lat.toFixed(4)}, {result.coordinates.lng.toFixed(4)}</p>
-            </div>
-            <div className="flex gap-3">
-                <button 
-                    onClick={() => generateAndDownloadReport(result)}
-                    className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-white text-sm font-medium transition-colors flex items-center gap-2"
-                >
-                    <Printer className="w-4 h-4" /> Report PDF
-                </button>
-              <button 
-                onClick={() => { setResult(null); setAddress(''); }}
-                className="px-4 py-2 bg-primary-600 hover:bg-primary-500 rounded-lg text-white text-sm font-medium transition-colors"
-              >
-                Nuova Analisi
-              </button>
-            </div>
-          </div>
-
-          {/* Main Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            
-            {/* Col 1: AI Summary & Score */}
-            <div className="lg:col-span-1 space-y-6">
-              {/* Total Score Card */}
-              <div className="bg-dark-900 border border-white/10 rounded-2xl p-6 relative overflow-hidden group hover:border-primary-500/30 transition-colors">
-                <div className="absolute top-0 right-0 p-4 opacity-10">
-                  <Hexagon className="w-24 h-24 text-primary-500" />
-                </div>
-                <h3 className="text-gray-400 text-sm font-bold uppercase tracking-wider mb-4">Punteggio AI</h3>
-                <div className="flex items-end gap-2 mb-2">
-                  <span className="text-6xl font-display font-bold text-white">{result.scores.total}</span>
-                  <span className="text-xl text-gray-500 mb-2">/100</span>
-                </div>
-                <p className="text-sm text-gray-400">Eccellente potenziale di sviluppo</p>
-                
-                <div className="mt-6 space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Agricolo</span>
-                    <span className="text-white font-bold">{result.scores.agriculture}/100</span>
-                  </div>
-                  <div className="w-full bg-white/5 h-1.5 rounded-full">
-                    <div className="bg-green-500 h-full rounded-full" style={{ width: `${result.scores.agriculture}%` }}></div>
-                  </div>
-
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Fotovoltaico</span>
-                    <span className="text-white font-bold">{result.scores.solar}/100</span>
-                  </div>
-                  <div className="w-full bg-white/5 h-1.5 rounded-full">
-                    <div className="bg-yellow-500 h-full rounded-full" style={{ width: `${result.scores.solar}%` }}></div>
-                  </div>
-
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Edificabile</span>
-                    <span className="text-white font-bold">{result.scores.construction}/100</span>
-                  </div>
-                  <div className="w-full bg-white/5 h-1.5 rounded-full">
-                    <div className="bg-blue-500 h-full rounded-full" style={{ width: `${result.scores.construction}%` }}></div>
-                  </div>
-                </div>
-              </div>
-
-              {/* AI Insight */}
-              <div className="bg-gradient-to-br from-primary-900/20 to-dark-900 border border-primary-500/20 rounded-2xl p-6">
-                <div className="flex items-center gap-2 mb-4 text-primary-400">
-                  <Sparkles className="w-4 h-4" />
-                  <h3 className="font-bold uppercase text-sm tracking-wider">AI Insight</h3>
-                </div>
-                <p className="text-gray-300 text-sm leading-relaxed mb-4">
-                  {result.aiSummary}
-                </p>
-                <div className="space-y-2">
-                  {result.recommendations.map((rec, i) => (
-                    <div key={i} className="flex items-start gap-2 text-xs text-gray-400 bg-black/20 p-2 rounded">
-                      <CheckCircle className="w-3 h-3 text-primary-500 mt-0.5" />
-                      {rec}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Col 2 & 3: Technical Data */}
-            <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
-              
-              {/* Morphology */}
-              <div className="bg-dark-900 border border-white/10 rounded-2xl p-6">
-                <div className="flex items-center gap-2 mb-6 text-gray-400">
-                  <Mountain className="w-4 h-4" />
-                  <h3 className="font-bold uppercase text-sm tracking-wider">Morfologia</h3>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                   <div className="p-4 bg-white/5 rounded-xl">
-                      <div className="text-xs text-gray-500 mb-1">Altitudine</div>
-                      <div className="text-xl font-bold text-white">{result.data.morphology.elevation}m</div>
-                   </div>
-                   <div className="p-4 bg-white/5 rounded-xl">
-                      <div className="text-xs text-gray-500 mb-1">Pendenza</div>
-                      <div className="text-xl font-bold text-white">{result.data.morphology.slope}%</div>
-                   </div>
-                   <div className="p-4 bg-white/5 rounded-xl">
-                      <div className="text-xs text-gray-500 mb-1">Esposizione</div>
-                      <div className="text-xl font-bold text-white">{result.data.morphology.exposure}</div>
-                   </div>
-                   <div className="p-4 bg-white/5 rounded-xl">
-                      <div className="text-xs text-gray-500 mb-1">Suolo</div>
-                      <div className="text-xl font-bold text-white truncate">{result.data.geology.soilType}</div>
-                   </div>
-                </div>
-              </div>
-
-              {/* Solar Analysis */}
-              <div className="bg-dark-900 border border-white/10 rounded-2xl p-6">
-                <div className="flex items-center gap-2 mb-6 text-gray-400">
-                  <Sun className="w-4 h-4" />
-                  <h3 className="font-bold uppercase text-sm tracking-wider">Analisi Solare</h3>
-                </div>
-                <div className="h-32 w-full mb-4">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={SOLAR_DATA}>
-                      <defs>
-                        <linearGradient id="colorSun" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#eab308" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="#eab308" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <Area type="monotone" dataKey="val" stroke="#eab308" fillOpacity={1} fill="url(#colorSun)" />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="flex justify-between items-center text-sm">
-                  <div>
-                    <div className="text-gray-500 text-xs">Irraggiamento</div>
-                    <div className="text-white font-bold">{result.data.solar.irradiance} kWh/m²</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-gray-500 text-xs">Potenziale PV</div>
-                    <div className="text-yellow-500 font-bold">{result.data.solar.pvPotential}</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Risk Map */}
-              <div className="bg-dark-900 border border-white/10 rounded-2xl p-6">
-                 <div className="flex items-center gap-2 mb-6 text-gray-400">
-                  <AlertTriangle className="w-4 h-4" />
-                  <h3 className="font-bold uppercase text-sm tracking-wider">Mappa Rischi</h3>
-                </div>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center p-3 bg-white/5 rounded-lg border border-white/5">
-                    <span className="text-sm text-gray-300">Sismico (INGV)</span>
-                    <span className={`text-xs font-bold px-2 py-1 rounded ${result.data.risks.seismicZone === '1' ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
-                      Zona {result.data.risks.seismicZone}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-white/5 rounded-lg border border-white/5">
-                    <span className="text-sm text-gray-300">Idrogeologico</span>
-                    <span className={`text-xs font-bold px-2 py-1 rounded ${result.data.risks.floodHazard !== 'Assente' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-green-500/20 text-green-400'}`}>
-                      {result.data.risks.floodHazard}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-white/5 rounded-lg border border-white/5">
-                    <span className="text-sm text-gray-300">Frane (PAI)</span>
-                    <span className="text-xs font-bold px-2 py-1 rounded bg-green-500/20 text-green-400">
-                      {result.data.risks.landslideRisk}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-               {/* Climate */}
-               <div className="bg-dark-900 border border-white/10 rounded-2xl p-6">
-                <div className="flex items-center gap-2 mb-6 text-gray-400">
-                  <Droplets className="w-4 h-4" />
-                  <h3 className="font-bold uppercase text-sm tracking-wider">Microclima</h3>
-                </div>
-                <div className="h-32 w-full">
-                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={TEMP_DATA}>
-                      <Bar dataKey="rain" fill="#3b82f6" radius={[2, 2, 0, 0]} />
-                      <Tooltip 
-                        contentStyle={{ backgroundColor: '#18181b', border: '1px solid #333', borderRadius: '8px' }}
-                        itemStyle={{ color: '#fff' }}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-                 <div className="flex justify-between items-center text-sm mt-4">
-                  <div>
-                    <div className="text-gray-500 text-xs">Vento Medio</div>
-                    <div className="text-white font-bold">{result.data.wind.speedAvg} m/s</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-gray-500 text-xs">Direzione</div>
-                    <div className="text-blue-400 font-bold">{result.data.wind.directionDominant}</div>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          </div>
-
-          {/* ============================================================
-              SEZIONE PREMIUM (Business Plan & Export) - GREEN THEME
-          ============================================================ */}
-          <div className="border-t border-white/10 pt-12 mt-12">
-            <div className="flex flex-col md:flex-row justify-between items-start mb-8">
-                <div>
-                    <h3 className="text-2xl font-bold text-white font-display flex items-center gap-2">
-                        <Zap className="text-primary-500" /> Strategia & Finanza
-                    </h3>
-                    <p className="text-gray-400 text-sm mt-2">Sblocca il potenziale economico nascosto del tuo terreno.</p>
-                </div>
-                <div className="flex gap-2 mt-4 md:mt-0 bg-dark-900 p-1 rounded-lg border border-white/10">
-                    {/* Scenario Selector */}
-                    <button 
-                        onClick={() => handleScenarioChange('solar')}
-                        className={`px-3 py-2 rounded text-xs font-medium flex items-center gap-2 transition-colors ${selectedScenario === 'solar' ? 'bg-primary-600 text-white' : 'text-gray-400 hover:text-white'}`}
-                    >
-                        <Sun className="w-3 h-3" /> Agri-Voltaico
-                    </button>
-                    <button 
-                         onClick={() => handleScenarioChange('glamping')}
-                         className={`px-3 py-2 rounded text-xs font-medium flex items-center gap-2 transition-colors ${selectedScenario === 'glamping' ? 'bg-primary-600 text-white' : 'text-gray-400 hover:text-white'}`}
-                    >
-                        <Tent className="w-3 h-3" /> Glamping
-                    </button>
-                    <button 
-                         onClick={() => handleScenarioChange('construction')}
-                         className={`px-3 py-2 rounded text-xs font-medium flex items-center gap-2 transition-colors ${selectedScenario === 'construction' ? 'bg-primary-600 text-white' : 'text-gray-400 hover:text-white'}`}
-                    >
-                        <Building className="w-3 h-3" /> Residenziale
-                    </button>
-                </div>
-            </div>
-
-            {/* NEW: Check Vincolistico (Visual) */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                {[
-                    { label: "Vincolo Idrogeologico (PAI)", status: "Verificato", color: "text-green-500", bg: "bg-green-500/10", icon: Droplets },
-                    { label: "Vincolo Paesaggistico (PPTR)", status: "Attenzione", color: "text-yellow-500", bg: "bg-yellow-500/10", icon: Eye },
-                    { label: "Destinazione Urbanistica", status: "Compatibile", color: "text-green-500", bg: "bg-green-500/10", icon: Building }
-                ].map((check, idx) => (
-                    <div key={idx} className="bg-dark-900 border border-white/5 p-4 rounded-xl flex items-center justify-between relative overflow-hidden">
-                         {/* Blurring if locked */}
-                        {!isPremiumUnlocked && <div className="absolute inset-0 bg-dark-900/80 backdrop-blur-[2px] z-10"></div>}
-                        
-                        <div className="flex items-center gap-3">
-                            <div className={`p-2 rounded-lg ${check.bg}`}>
-                                <check.icon className={`w-5 h-5 ${check.color}`} />
-                            </div>
-                            <span className="text-sm text-gray-300 font-medium">{check.label}</span>
-                        </div>
-                        <span className={`text-xs font-bold ${check.color}`}>{check.status}</span>
-                    </div>
-                ))}
-            </div>
-
-            <div className="relative bg-dark-900 border border-primary-500/20 rounded-2xl p-8 overflow-hidden">
-                
-                {/* PAYWALL OVERLAY */}
-                {!isPremiumUnlocked && (
-                    <div className="absolute inset-0 bg-dark-950/60 backdrop-blur-md z-20 flex flex-col items-center justify-center text-center p-6">
-                        <Lock className="w-12 h-12 text-primary-500 mb-4" />
-                        <h4 className="text-2xl font-bold text-white mb-2">Report Premium Locked</h4>
-                        <p className="text-gray-300 mb-6 max-w-md">
-                            Accedi al Business Plan completo ({selectedScenario === 'solar' ? 'Agri-Voltaico' : selectedScenario === 'glamping' ? 'Turistico' : 'Immobiliare'}), 
-                            scarica i file DXF per il tuo architetto e visualizza l'analisi dei vincoli.
-                        </p>
-                        <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
-                            <div className="flex-1 bg-dark-800 border border-primary-500 rounded-xl p-4 cursor-pointer hover:bg-dark-700 transition-colors relative overflow-hidden group">
-                                <div className="absolute top-0 right-0 bg-primary-500 text-black text-[10px] font-bold px-2 py-0.5">BEST VALUE</div>
-                                <div className="font-bold text-white">Pro Plan</div>
-                                <div className="text-primary-500 font-display text-2xl font-bold mt-1">€ 49</div>
-                                <button 
-                                    onClick={handleUnlock} 
-                                    className="mt-4 w-full bg-primary-600 hover:bg-primary-500 text-white py-2 rounded font-bold text-sm transition-colors"
-                                >
-                                    Sblocca Report
-                                </button>
-                            </div>
-                            <div className="flex-1 bg-dark-800 border border-white/10 rounded-xl p-4 opacity-75 cursor-not-allowed">
-                                <div className="font-bold text-gray-400">Enterprise</div>
-                                <div className="text-white font-display text-2xl font-bold mt-1">Custom</div>
-                                <div className="mt-4 text-xs text-gray-500 py-2">Contattaci per API</div>
-                            </div>
-                        </div>
-                        <button 
-                            onClick={handleUnlock} 
-                            className="mt-6 text-gray-400 text-sm hover:text-white underline"
-                        >
-                            Vedi Esempio (Demo Mode)
-                        </button>
-                    </div>
-                )}
-
-                {/* CONTENT (Blurred if locked) */}
-                <div className={!isPremiumUnlocked ? 'blur-sm opacity-50 select-none' : ''}>
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        
-                        {/* Left: Key Metrics */}
-                        <div className="space-y-6">
-                             <div className="p-4 bg-primary-500/10 border border-primary-500/20 rounded-xl">
-                                <div className="text-sm text-primary-400 mb-1">ROI Stimato (20 Anni)</div>
-                                <div className="text-4xl font-bold text-white font-display">{financialData?.roi}%</div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="p-4 bg-white/5 rounded-xl">
-                                    <div className="text-xs text-gray-500 mb-1">CAPEX (Investimento)</div>
-                                    <div className="text-lg font-bold text-white">€ {financialData?.capex.toLocaleString()}</div>
-                                </div>
-                                <div className="p-4 bg-white/5 rounded-xl">
-                                    <div className="text-xs text-gray-500 mb-1">Payback Period</div>
-                                    <div className="text-lg font-bold text-white">{financialData?.paybackYear}</div>
-                                </div>
-                                <div className="p-4 bg-white/5 rounded-xl">
-                                    <div className="text-xs text-gray-500 mb-1">{financialData?.metricLabel}</div>
-                                    <div className="text-lg font-bold text-white">{financialData?.mainMetric}</div>
-                                </div>
-                                <div className="p-4 bg-white/5 rounded-xl">
-                                    <div className="text-xs text-gray-500 mb-1">{selectedScenario === 'construction' ? 'Valore Asset' : 'Ricavi Annuali'}</div>
-                                    <div className="text-lg font-bold text-white text-green-400">€ {financialData?.annualRevenue.toLocaleString()}</div>
-                                </div>
-                            </div>
-                            
-                            <div className="pt-4">
-                                <h5 className="text-white font-bold mb-4 text-sm">Download Tecnici</h5>
-                                <div className="space-y-3">
-                                    <button 
-                                        onClick={() => generateAndDownloadDXF(5000)}
-                                        className="w-full flex items-center justify-between p-3 bg-dark-800 hover:bg-dark-700 border border-white/10 rounded-lg transition-colors group"
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <div className="bg-blue-900/30 p-2 rounded text-blue-400"><FileSpreadsheet className="w-4 h-4" /></div>
-                                            <div className="text-left">
-                                                <div className="text-sm text-white font-medium">Planimetria DXF (CAD)</div>
-                                                <div className="text-xs text-gray-500">Vettoriale scala 1:1</div>
-                                            </div>
-                                        </div>
-                                        <Download className="w-4 h-4 text-gray-500 group-hover:text-white" />
-                                    </button>
-                                    <button 
-                                        onClick={() => generateAndDownloadCSV(result, financialData)}
-                                        className="w-full flex items-center justify-between p-3 bg-dark-800 hover:bg-dark-700 border border-white/10 rounded-lg transition-colors group"
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <div className="bg-green-900/30 p-2 rounded text-green-400"><FileText className="w-4 h-4" /></div>
-                                            <div className="text-left">
-                                                <div className="text-sm text-white font-medium">Business Plan (CSV)</div>
-                                                <div className="text-xs text-gray-500">Excel Ready</div>
-                                            </div>
-                                        </div>
-                                        <Download className="w-4 h-4 text-gray-500 group-hover:text-white" />
-                                    </button>
-                                     <button 
-                                        onClick={() => generateAndDownloadReport(result)}
-                                        className="w-full flex items-center justify-between p-3 bg-dark-800 hover:bg-dark-700 border border-white/10 rounded-lg transition-colors group"
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <div className="bg-yellow-900/30 p-2 rounded text-yellow-400"><ShieldCheck className="w-4 h-4" /></div>
-                                            <div className="text-left">
-                                                <div className="text-sm text-white font-medium">Report Tecnico PAI</div>
-                                                <div className="text-xs text-gray-500">Verifica Rischi</div>
-                                            </div>
-                                        </div>
-                                        <Download className="w-4 h-4 text-gray-500 group-hover:text-white" />
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Right: Charts */}
-                        <div className="lg:col-span-2">
-                            <div className="bg-dark-800 rounded-xl p-4 h-80 border border-white/5">
-                                <h4 className="text-sm text-gray-400 mb-4">Cash Flow Proiettato (20 Anni)</h4>
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={financialData?.cashFlow}>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
-                                        <XAxis dataKey="year" stroke="#666" fontSize={10} />
-                                        <YAxis stroke="#666" fontSize={10} />
-                                        <Tooltip 
-                                            contentStyle={{ backgroundColor: '#18181b', border: '1px solid #333' }}
-                                            labelStyle={{ color: '#888' }}
-                                        />
-                                        <Bar dataKey="net" fill="#22c55e" radius={[2, 2, 0, 0]} />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-    </div>
-  );
-};
-
-const MarketplacePage = () => {
-  const [listings, setListings] = useState<LandListing[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showSellModal, setShowSellModal] = useState(false);
-  
-  // Form State
-  const [newListing, setNewListing] = useState({
-    title: '',
-    price: '',
-    location: '',
-    type: 'Agricolo',
-    size: '',
-    description: ''
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-     const fetchListings = async () => {
-         if (isSupabaseConfigured()) {
-             const { data, error } = await supabase!.from('listings').select('*').order('created_at', { ascending: false });
-             if (!error && data) {
-                 const mapped: LandListing[] = data.map((l: any) => ({
-                     id: l.id,
-                     title: l.title,
-                     price: l.price,
-                     sizeSqm: l.size_sqm,
-                     type: l.type as LandType,
-                     location: l.location,
-                     imageUrl: l.image_url,
-                     description: l.description,
-                     aiScore: l.ai_score || 85,
-                     features: l.features || [],
-                     isPremium: l.is_premium
-                 }));
-                 setListings(mapped);
-             } else {
-                 console.error(error);
-                 setListings(MOCK_LISTINGS_FALLBACK);
-             }
-         } else {
-             setListings(MOCK_LISTINGS_FALLBACK);
-         }
-         setLoading(false);
-     };
-     fetchListings();
-  }, []);
-
-  const handleSellSubmit = async (e: React.FormEvent) => {
-      e.preventDefault();
-      setIsSubmitting(true);
-      
-      if (isSupabaseConfigured()) {
-          const { data, error } = await supabase!.from('listings').insert([
-              {
-                  title: newListing.title,
-                  price: parseFloat(newListing.price),
-                  location: newListing.location,
-                  type: newListing.type,
-                  size_sqm: parseFloat(newListing.size),
-                  description: newListing.description,
-                  image_url: `https://image.pollinations.ai/prompt/land%20${newListing.location}%20${newListing.type}?width=800&height=600&nologo=true`, // Auto-generate image for now
-                  ai_score: Math.floor(Math.random() * 20) + 80 // Mock AI score
-              }
-          ]).select();
-
-          if (!error && data) {
-              setListings(prev => [
-                  {
-                     id: data[0].id,
-                     title: data[0].title,
-                     price: data[0].price,
-                     sizeSqm: data[0].size_sqm,
-                     type: data[0].type,
-                     location: data[0].location,
-                     imageUrl: data[0].image_url,
-                     description: data[0].description,
-                     aiScore: data[0].ai_score,
-                     features: [],
-                     isPremium: false
-                  },
-                  ...prev
-              ]);
-              setShowSellModal(false);
-          } else {
-              alert("Errore nel salvataggio: " + error?.message);
-          }
-      } else {
-          alert("Modalità Demo: Il database non è collegato. Il terreno non verrà salvato.");
-          setShowSellModal(false);
-      }
-      setIsSubmitting(false);
-  };
-
-  return (
-    <div className="min-h-screen pt-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-white font-display">Marketplace Terreni</h1>
-          <p className="text-gray-400 mt-1">
-             {loading ? 'Caricamento...' : isSupabaseConfigured() ? `${listings.length} Terreni verificati AI` : 'Modalità Demo (Database Disconnesso)'}
-          </p>
-        </div>
-        <button 
-            onClick={() => setShowSellModal(true)}
-            className="bg-white text-black hover:bg-gray-200 px-4 py-2 rounded-lg font-bold text-sm transition-colors flex items-center gap-2"
-        >
-            <Plus className="w-4 h-4" /> Vendi il tuo terreno
-        </button>
-      </div>
-
-      {/* Filters Bar */}
-      <div className="glass-panel rounded-xl p-4 mb-8 flex gap-4 overflow-x-auto">
-         <button className="flex items-center gap-2 bg-white/5 hover:bg-white/10 text-white px-4 py-2 rounded-lg border border-white/10 text-sm whitespace-nowrap">
-            <Filter className="w-4 h-4" /> Tutti i filtri
-         </button>
-         <button className="bg-white/5 hover:bg-white/10 text-white px-4 py-2 rounded-lg border border-white/10 text-sm whitespace-nowrap">Edificabili</button>
-         <button className="bg-white/5 hover:bg-white/10 text-white px-4 py-2 rounded-lg border border-white/10 text-sm whitespace-nowrap">Agricoli</button>
-         <button className="bg-white/5 hover:bg-white/10 text-white px-4 py-2 rounded-lg border border-white/10 text-sm whitespace-nowrap">Industriali</button>
-         <button className="bg-white/5 hover:bg-white/10 text-white px-4 py-2 rounded-lg border border-white/10 text-sm whitespace-nowrap">Alta Rendita</button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {listings.map((land) => (
-          <div key={land.id} className="bg-dark-900 border border-white/10 rounded-2xl overflow-hidden hover:border-primary-500/50 transition-all group shadow-2xl">
-            <div className="relative h-56">
-              <img src={land.imageUrl} alt={land.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-              <div className="absolute top-3 left-3 bg-black/60 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-white border border-white/10">
-                {land.type}
-              </div>
-              {land.isPremium && (
-                <div className="absolute top-3 right-3 bg-primary-500 text-black px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
-                  <Zap className="w-3 h-3" /> Premium
-                </div>
-              )}
-              <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur px-3 py-1 rounded-full text-xs text-white flex items-center gap-1">
-                 <MapPin className="w-3 h-3 text-gray-400" /> {land.location}
-              </div>
-            </div>
-            <div className="p-5">
-              <div className="flex justify-between items-start mb-2">
-                 <h3 className="text-xl font-bold text-white line-clamp-1">{land.title}</h3>
-                 <div className="text-primary-400 font-bold whitespace-nowrap">€ {land.price.toLocaleString()}</div>
-              </div>
-              <p className="text-gray-400 text-sm mb-4 line-clamp-2 leading-relaxed">{land.description}</p>
-              
-              <div className="flex gap-4 text-sm text-gray-300 mb-4 border-t border-white/5 pt-3">
-                <div>
-                    <span className="block text-xs text-gray-500 uppercase">Superficie</span>
-                    {land.sizeSqm.toLocaleString()} m²
-                </div>
-                <div>
-                    <span className="block text-xs text-gray-500 uppercase">Score AI</span>
-                    <span className="text-green-400 font-bold">{land.aiScore}/100</span>
-                </div>
-              </div>
-
-              <button className="w-full bg-white/5 hover:bg-primary-600 hover:text-white text-gray-300 py-3 rounded-lg text-sm font-bold transition-all border border-white/10 hover:border-primary-500">
-                Vedi Dettagli AI
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Sell Modal */}
-      {showSellModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-              <div className="bg-dark-900 border border-white/10 rounded-2xl p-6 w-full max-w-lg relative shadow-2xl">
-                  <button 
-                    onClick={() => setShowSellModal(false)}
-                    className="absolute top-4 right-4 text-gray-400 hover:text-white"
-                  >
-                      <X className="w-6 h-6" />
-                  </button>
-                  
-                  <h2 className="text-2xl font-bold text-white mb-6 font-display">Metti in vendita</h2>
-                  
-                  <form onSubmit={handleSellSubmit} className="space-y-4">
-                      <div>
-                          <label className="block text-xs text-gray-400 mb-1 uppercase">Titolo Annuncio</label>
-                          <input 
-                            required
-                            type="text" 
-                            className="w-full bg-black border border-white/10 rounded p-3 text-white focus:border-primary-500 outline-none"
-                            placeholder="Es. Terreno edificabile vista mare"
-                            value={newListing.title}
-                            onChange={e => setNewListing({...newListing, title: e.target.value})}
-                          />
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-xs text-gray-400 mb-1 uppercase">Prezzo (€)</label>
-                            <input 
-                                required
-                                type="number" 
-                                className="w-full bg-black border border-white/10 rounded p-3 text-white focus:border-primary-500 outline-none"
-                                placeholder="100000"
-                                value={newListing.price}
-                                onChange={e => setNewListing({...newListing, price: e.target.value})}
-                            />
-                          </div>
-                           <div>
-                            <label className="block text-xs text-gray-400 mb-1 uppercase">Mq</label>
-                            <input 
-                                required
-                                type="number" 
-                                className="w-full bg-black border border-white/10 rounded p-3 text-white focus:border-primary-500 outline-none"
-                                placeholder="5000"
-                                value={newListing.size}
-                                onChange={e => setNewListing({...newListing, size: e.target.value})}
-                            />
-                          </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                         <div>
-                            <label className="block text-xs text-gray-400 mb-1 uppercase">Località</label>
-                            <input 
-                                required
-                                type="text" 
-                                className="w-full bg-black border border-white/10 rounded p-3 text-white focus:border-primary-500 outline-none"
-                                placeholder="Comune (Prov)"
-                                value={newListing.location}
-                                onChange={e => setNewListing({...newListing, location: e.target.value})}
-                            />
-                         </div>
-                          <div>
-                            <label className="block text-xs text-gray-400 mb-1 uppercase">Tipo</label>
-                            <select 
-                                className="w-full bg-black border border-white/10 rounded p-3 text-white focus:border-primary-500 outline-none"
-                                value={newListing.type}
-                                onChange={e => setNewListing({...newListing, type: e.target.value})}
-                            >
-                                <option>Agricolo</option>
-                                <option>Edificabile</option>
-                                <option>Industriale</option>
-                            </select>
-                         </div>
-                      </div>
-                      <div>
-                          <label className="block text-xs text-gray-400 mb-1 uppercase">Descrizione</label>
-                          <textarea 
-                            required
-                            rows={3}
-                            className="w-full bg-black border border-white/10 rounded p-3 text-white focus:border-primary-500 outline-none resize-none"
-                            placeholder="Descrivi il terreno..."
-                            value={newListing.description}
-                            onChange={e => setNewListing({...newListing, description: e.target.value})}
-                          />
-                      </div>
-                      
-                      <button 
-                        disabled={isSubmitting}
-                        type="submit"
-                        className="w-full bg-primary-600 hover:bg-primary-500 text-white font-bold py-3 rounded transition-colors mt-2 disabled:opacity-50"
-                      >
-                          {isSubmitting ? 'Pubblicazione in corso...' : 'Pubblica Ora'}
-                      </button>
-                  </form>
-              </div>
-          </div>
-      )}
-
-    </div>
-  );
-};
-
 const BlogPage = () => {
-  const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchPosts = async () => {
-      try {
-        const response = await fetch(WORDPRESS_API_URL);
-        if (!response.ok) throw new Error('Network response was not ok');
-        
-        const data = await response.json();
-        
-        // Transform WordPress data to our schema
-        const mappedPosts: BlogPost[] = data.map((post: any) => {
-             // Try to get the featured media URL safely
-             let imgUrl = 'https://picsum.photos/800/400?random=' + post.id;
-             if (post._embedded && post._embedded['wp:featuredmedia'] && post._embedded['wp:featuredmedia'][0].source_url) {
-                 imgUrl = post._embedded['wp:featuredmedia'][0].source_url;
-             }
-
-             return {
-                id: post.id.toString(),
-                title: post.title.rendered,
-                excerpt: post.excerpt.rendered.replace(/<[^>]+>/g, '').substring(0, 100) + '...',
-                category: 'News', // WordPress categories are complex to fetch, simplified for demo
-                readTime: '3 min',
-                imageUrl: imgUrl,
-                date: new Date(post.date).toLocaleDateString()
-             };
-        });
-        
-        setPosts(mappedPosts);
-      } catch (error) {
-        console.warn("Could not fetch WordPress posts (likely CORS or invalid URL). Using Mock Data.");
-        setPosts(MOCK_BLOG);
-      } finally {
-        setLoading(false);
+      async function fetchPosts() {
+          try {
+              const res = await fetch(WORDPRESS_API_URL);
+              if(!res.ok) throw new Error("Blog not found");
+              const data = await res.json();
+              
+              const formattedPosts = data.map((p: any) => ({
+                  id: p.id,
+                  title: p.title.rendered,
+                  excerpt: p.excerpt.rendered.replace(/(<([^>]+)>)/gi, "").substring(0, 120) + "...",
+                  imageUrl: p._embedded?.['wp:featuredmedia']?.[0]?.source_url || `https://picsum.photos/800/400?random=${p.id}`,
+                  date: new Date(p.date).toLocaleDateString(),
+                  category: "News",
+                  link: p.link
+              }));
+              setPosts(formattedPosts);
+          } catch (e) {
+              console.log("Blog fetch failed, using fallback");
+              setPosts(MOCK_BLOG);
+          } finally {
+              setLoading(false);
+          }
       }
-    };
-
-    fetchPosts();
+      fetchPosts();
   }, []);
 
   return (
-    <div className="min-h-screen pt-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-      <div className="text-center mb-16">
-        <h1 className="text-4xl font-bold text-white font-display mb-4">Blog Tecnico & Normativo</h1>
-        <p className="text-gray-400 max-w-2xl mx-auto">
-          Rimani aggiornato sulle ultime normative catastali, incentivi agricoli e tecnologie di costruzione.
-        </p>
-      </div>
-
-      {loading ? (
-         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-             {[1,2,3].map(i => (
-                 <div key={i} className="h-96 bg-white/5 rounded-2xl animate-pulse"></div>
-             ))}
-         </div>
-      ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {posts.map((post) => (
-              <article key={post.id} className="bg-dark-900 border border-white/10 rounded-2xl overflow-hidden hover:border-primary-500/30 transition-all group cursor-pointer">
-                <div className="h-48 overflow-hidden">
-                  <img src={post.imageUrl} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                </div>
-                <div className="p-6">
-                  <div className="flex gap-3 text-xs font-medium mb-3">
-                    <span className="text-primary-400">{post.category}</span>
-                    <span className="text-gray-500">• {post.readTime} lettura</span>
-                    <span className="text-gray-500">• {post.date}</span>
+      <div className="pt-32 pb-20 min-h-screen">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <h1 className="text-4xl font-display font-bold text-white mb-12 text-center">Blog & Insights</h1>
+              
+              {loading ? (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                      {[1,2,3].map(i => (
+                          <div key={i} className="h-96 bg-white/5 animate-pulse rounded-2xl"></div>
+                      ))}
                   </div>
-                  <h3 className="text-xl font-bold text-white mb-3 group-hover:text-primary-400 transition-colors" dangerouslySetInnerHTML={{__html: post.title}}></h3>
-                  <p className="text-gray-400 text-sm leading-relaxed mb-4">{post.excerpt}</p>
-                  <span className="text-white text-sm font-bold flex items-center gap-1 group-hover:gap-2 transition-all">
-                    Leggi articolo <ArrowRight className="w-4 h-4 text-primary-500" />
-                  </span>
-                </div>
-              </article>
-            ))}
+              ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                      {posts.map(post => (
+                          <a href={post.link || '#'} key={post.id} target="_blank" rel="noreferrer" className="group glass-card rounded-2xl overflow-hidden border border-white/10 hover:border-primary-500/50 transition-all">
+                              <div className="h-48 overflow-hidden">
+                                  <img src={post.imageUrl} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                              </div>
+                              <div className="p-6">
+                                  <div className="flex justify-between text-xs text-gray-500 mb-3">
+                                      <span className="uppercase tracking-wider">{post.category}</span>
+                                      <span>{post.date}</span>
+                                  </div>
+                                  <h3 className="text-xl font-bold text-white mb-3 group-hover:text-primary-400 transition-colors" dangerouslySetInnerHTML={{__html: post.title}}></h3>
+                                  <p className="text-gray-400 text-sm mb-4 line-clamp-3">{post.excerpt}</p>
+                                  <div className="text-primary-500 text-sm font-bold flex items-center gap-1">
+                                      Leggi articolo <ArrowRight className="w-4 h-4" />
+                                  </div>
+                              </div>
+                          </a>
+                      ))}
+                  </div>
+              )}
           </div>
-      )}
-    </div>
+      </div>
   );
-};
+}
 
 const DashboardPage = () => (
-  <div className="min-h-screen pt-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-    <div className="bg-dark-900 border border-white/10 rounded-2xl p-12 text-center">
-      <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6">
-         <User className="w-10 h-10 text-gray-400" />
-      </div>
-      <h2 className="text-2xl font-bold text-white mb-2">Area Riservata</h2>
-      <p className="text-gray-400 mb-8">Accedi per gestire i tuoi terreni e visualizzare lo storico report.</p>
-      <div className="flex justify-center gap-4">
-        <button className="bg-white text-black px-6 py-3 rounded-lg font-bold hover:bg-gray-200 transition-colors">Login con Google</button>
-        <button className="bg-transparent border border-white/20 text-white px-6 py-3 rounded-lg font-bold hover:bg-white/5 transition-colors">Registrati</button>
-      </div>
+    <div className="pt-32 pb-20 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+            <Lock className="w-16 h-16 text-gray-600 mx-auto mb-6" />
+            <h1 className="text-3xl font-bold text-white mb-2">Area Riservata</h1>
+            <p className="text-gray-400 mb-8">Effettua l'accesso per gestire i tuoi terreni e scaricare i report.</p>
+            <button className="bg-primary-600 hover:bg-primary-500 text-white px-8 py-3 rounded-full font-bold transition-all">
+                Accedi con Google
+            </button>
+        </div>
     </div>
-  </div>
 );
 
-const App = () => {
-  const [currentPage, setCurrentPage] = useState('home');
+// --- MAIN APP COMPONENT ---
 
-  const renderPage = () => {
-    switch(currentPage) {
-      case 'home': return <HomePage onStartAnalysis={() => setCurrentPage('analysis')} />;
-      case 'analysis': return <AnalysisPage />;
-      case 'marketplace': return <MarketplacePage />;
-      case 'blog': return <BlogPage />;
-      case 'dashboard': return <DashboardPage />;
-      default: return <HomePage onStartAnalysis={() => setCurrentPage('analysis')} />;
-    }
-  };
+function App() {
+  const [currentPage, setCurrentPage] = useState('home');
+  const [searchMode, setSearchMode] = useState('buy');
+
+  const handleSearchWidget = (mode: string) => {
+      setSearchMode(mode);
+      if (mode === 'sell') setCurrentPage('marketplace');
+      else setCurrentPage('analysis');
+  }
 
   return (
-    <div className="bg-black min-h-screen text-gray-100 font-sans selection:bg-primary-500/30">
+    <div className="min-h-screen bg-[#09090b] text-gray-100 font-sans selection:bg-primary-500/30">
       <Navbar currentPage={currentPage} setCurrentPage={setCurrentPage} />
-      <main className="fade-in">
-        {renderPage()}
+      
+      <main className="animate-fade-in">
+        {currentPage === 'home' && (
+          <>
+            <HeroSection onStartAnalysis={handleSearchWidget} />
+            <FeaturedSection />
+            <ValuePropositionSection />
+          </>
+        )}
+        {currentPage === 'analysis' && <AnalysisPage initialMode={searchMode} />}
+        {currentPage === 'marketplace' && <MarketplacePage />}
+        {currentPage === 'blog' && <BlogPage />}
+        {currentPage === 'dashboard' && <DashboardPage />}
       </main>
+
       <Footer />
     </div>
   );
-};
+}
 
 export default App;
