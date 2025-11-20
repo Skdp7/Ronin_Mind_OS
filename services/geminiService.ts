@@ -1,13 +1,23 @@
 import { GoogleGenAI } from "@google/genai";
 import { DetailedAnalysisData } from "../types";
 
+// Helper to safely get env variables in Vite/Vercel environment
+const getApiKey = () => {
+  if (typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.VITE_API_KEY) {
+    return (import.meta as any).env.VITE_API_KEY;
+  }
+  if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
+    return process.env.API_KEY;
+  }
+  return undefined;
+};
+
 export const generateLandAnalysisSummary = async (address: string, data: DetailedAnalysisData): Promise<{ summary: string; recommendations: string[] }> => {
   try {
-    // Initialize inside the function to prevent crash on module load if env is missing
-    const apiKey = process.env.API_KEY;
+    const apiKey = getApiKey();
     
     if (!apiKey) {
-      console.warn("API Key missing, using fallback AI response.");
+      console.warn("API Key missing (VITE_API_KEY), using fallback AI response.");
       throw new Error("API Key missing");
     }
 
@@ -50,7 +60,7 @@ export const generateLandAnalysisSummary = async (address: string, data: Detaile
   } catch (error) {
     console.error("Gemini API Error (using fallback):", error);
     return {
-        summary: `Analisi completata per l'area di ${address}. La morfologia rilevata (${data.morphology.elevation}m slm, pendenza ${data.morphology.slope}%) suggerisce una vocazione mista. L'irraggiamento solare è favorevole per installazioni agrivoltaiche. I parametri idrogeologici rientrano nella norma, ma si consiglia verifica puntuale dei vincoli paesaggistici.`,
+        summary: `Analisi completata per l'area di ${address}. La morfologia rilevata (${data.morphology.elevation}m slm, pendenza ${data.morphology.slope}%) suggerisce una vocazione mista. L'irraggiamento solare è favorevole per installazioni agrivoltaiche. I parametri idrogeologici rientrano nella norma, ma si consiglia verifica puntuale dei vincoli paesaggistici. (Demo Mode: Aggiungi VITE_API_KEY su Vercel per analisi AI reale)`,
         recommendations: ["Verificare indici edificabilità", "Valutare impianto Agri-voltaico", "Analisi geologica approfondita"]
     };
   }
@@ -58,7 +68,7 @@ export const generateLandAnalysisSummary = async (address: string, data: Detaile
 
 export const generateListingDescription = async (features: string[]): Promise<string> => {
   try {
-    const apiKey = process.env.API_KEY;
+    const apiKey = getApiKey();
     if (!apiKey) throw new Error("API Key missing");
 
     const ai = new GoogleGenAI({ apiKey: apiKey });
