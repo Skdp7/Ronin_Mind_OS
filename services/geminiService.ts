@@ -1,27 +1,10 @@
+
 import { GoogleGenAI } from "@google/genai";
 import { DetailedAnalysisData } from "../types";
 
-// Helper to safely get env variables in Vite/Vercel environment
-const getApiKey = () => {
-  if (typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.VITE_API_KEY) {
-    return (import.meta as any).env.VITE_API_KEY;
-  }
-  if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
-    return process.env.API_KEY;
-  }
-  return undefined;
-};
-
 export const generateLandAnalysisSummary = async (address: string, data: DetailedAnalysisData): Promise<{ summary: string; recommendations: string[] }> => {
   try {
-    const apiKey = getApiKey();
-    
-    if (!apiKey) {
-      console.warn("API Key missing (VITE_API_KEY), using fallback AI response.");
-      throw new Error("API Key missing");
-    }
-
-    const ai = new GoogleGenAI({ apiKey: apiKey });
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const model = 'gemini-2.5-flash';
     
     const prompt = `
@@ -68,10 +51,7 @@ export const generateLandAnalysisSummary = async (address: string, data: Detaile
 
 export const generateListingDescription = async (features: string[]): Promise<string> => {
   try {
-    const apiKey = getApiKey();
-    if (!apiKey) throw new Error("API Key missing");
-
-    const ai = new GoogleGenAI({ apiKey: apiKey });
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const model = 'gemini-2.5-flash';
     const prompt = `
       Scrivi una descrizione accattivante per un annuncio di vendita terreno su 'terreninvendita.ai'.
