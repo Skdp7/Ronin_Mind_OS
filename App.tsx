@@ -4,11 +4,11 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import { 
   ArrowRight, MapPin, Activity, Sun, Wind, Zap, Layers, 
-  ShieldCheck, TrendingUp, CheckCircle, BarChart3, Lock, 
+  ShieldCheck, TrendingUp, CheckCircle, BarChart3, Lock, Unlock,
   Search, Filter, Upload, Hexagon, FileText, AlertTriangle,
   Droplets, Mountain, Navigation, Download, Printer, Loader2,
   ChevronDown, Building, Database, Cpu, Globe, Clock, Plus,
-  Eye, EyeOff, Edit, Save, X
+  Eye, EyeOff, Edit, Save, X, Coins, FileSpreadsheet
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -19,8 +19,6 @@ import { LandListing, AnalysisReport, LandType, BlogPost, DetailedAnalysisData }
 import { supabase, isSupabaseConfigured } from './services/supabaseClient';
 
 // --- CONFIGURAZIONE BLOG ---
-// Qui inseriamo il tuo dominio Hostinger. 
-// Il sito proverà a leggere da qui. Se non trova nulla (perché non l'hai ancora installato), userà i dati finti.
 const WORDPRESS_API_URL = 'https://blog.terreninvendita.ai/wp-json/wp/v2/posts?per_page=6&_embed';
 
 // --- MOCK DATA CONSTANTS (FALLBACK) ---
@@ -158,6 +156,54 @@ const TEMP_DATA = [
   { name: 'Nov', temp: 16, rain: 55 },
   { name: 'Dic', temp: 13, rain: 50 },
 ];
+
+// --- FINANCIAL & MATH HELPERS ---
+
+// Funzione per calcolare il business plan simulato
+const calculateFinancials = (irradiance: number, sizeSqm: number = 5000) => {
+  // Assunzioni: 40% copertura pannelli, 15% efficienza, 1 kWp occupa ~6mq
+  const usableArea = sizeSqm * 0.4;
+  const systemSizeKw = Math.floor(usableArea / 6); 
+  
+  // Produzione: Irraggiamento * Performance Ratio (0.8)
+  const annualProductionKwh = systemSizeKw * (irradiance / 1000) * 1200; 
+  
+  // Economici
+  const capex = systemSizeKw * 1100; // 1100€ al kW installato
+  const energyPrice = 0.09; // Prezzo vendita energia €/kWh
+  const annualRevenue = annualProductionKwh * energyPrice;
+  const opex = capex * 0.02; // Manutenzione 2% anno
+  
+  const cashFlow = [];
+  let cumulative = -capex;
+  
+  for(let i = 1; i <= 20; i++) {
+    // Degrado pannelli 0.5% annuo
+    const yearlyProd = annualProductionKwh * (1 - (i * 0.005));
+    const yearlyRev = yearlyProd * energyPrice;
+    const net = yearlyRev - opex;
+    cumulative += net;
+    
+    cashFlow.push({
+      year: `Y${i}`,
+      net: Math.round(cumulative),
+      cash: Math.round(net)
+    });
+  }
+
+  const roi = ((cumulative / capex) * 100).toFixed(1);
+  const paybackYear = cashFlow.find(c => c.net > 0)?.year || 'N/A';
+
+  return {
+    systemSizeKw,
+    capex: Math.round(capex),
+    annualRevenue: Math.round(annualRevenue),
+    roi,
+    paybackYear,
+    cashFlow
+  };
+};
+
 
 // --- REAL API HELPERS ---
 
@@ -895,6 +941,11 @@ const AnalysisPage = () => {
   const [scanPhase, setScanPhase] = useState(0);
   const [showPdfModal, setShowPdfModal] = useState(false);
   const [weatherChartData, setWeatherChartData] = useState<any[]>([]);
+  
+  // Premium State
+  const [isPremiumUnlocked, setIsPremiumUnlocked] = useState(false);
+  const [unlocking, setUnlocking] = useState(false);
+  const [financialData, setFinancialData] = useState<any>(null);
 
   const scanPhases = [
     "Connessione a OpenStreetMap Geocoding...",
@@ -962,6 +1013,10 @@ const AnalysisPage = () => {
       setScanPhase(3);
       await new Promise(r => setTimeout(r, 600));
       estimatedIrradiance = Math.floor(1200 + (1000 * (1 - Math.abs(lat - 45) / 90)));
+      
+      // Calculate Financials for Premium Section
+      const financials = calculateFinancials(estimatedIrradiance, 10000); // Default 10k mq for demo
+      setFinancialData(financials);
 
       setScanPhase(4);
 
@@ -1031,6 +1086,14 @@ const AnalysisPage = () => {
     } catch (error) {
       setStep('result'); 
     }
+  };
+
+  const handleUnlock = () => {
+    setUnlocking(true);
+    setTimeout(() => {
+       setIsPremiumUnlocked(true);
+       setUnlocking(false);
+    }, 2000);
   };
 
   const handleDownloadPDF = () => {
@@ -1340,7 +1403,7 @@ const AnalysisPage = () => {
         </div>
 
         {/* Risk & Climate Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
           <div className="glass-panel p-6 rounded-2xl border border-white/5">
             <h4 className="text-red-500 text-sm font-bold uppercase mb-6 flex items-center gap-2">
               <AlertTriangle className="w-4 h-4" /> Fattori di Rischio
@@ -1392,6 +1455,134 @@ const AnalysisPage = () => {
             </div>
           </div>
         </div>
+
+        {/* PREMIUM SECTION (Business Plan & Exports) */}
+        <div className="relative overflow-hidden rounded-3xl border border-amber-500/30 bg-gradient-to-b from-amber-900/10 to-black mt-16">
+           {!isPremiumUnlocked && (
+              <div className="absolute inset-0 z-20 backdrop-blur-md bg-black/60 flex flex-col items-center justify-center text-center p-6">
+                 <div className="w-20 h-20 bg-amber-500/20 rounded-full flex items-center justify-center mb-6 border border-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.3)]">
+                    <Lock className="w-10 h-10 text-amber-500" />
+                 </div>
+                 <h3 className="text-3xl font-display font-bold text-white mb-4">Business Plan & Strategia</h3>
+                 <p className="text-gray-300 max-w-md mb-8">
+                    Sblocca l'analisi finanziaria completa, il calcolo del ROI Fotovoltaico a 20 anni e scarica i file DXF per il tuo architetto.
+                 </p>
+                 <div className="flex flex-col sm:flex-row gap-4">
+                    <button 
+                      onClick={handleUnlock}
+                      className="bg-amber-500 hover:bg-amber-600 text-black font-bold px-8 py-4 rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-amber-500/20 hover:scale-105"
+                      disabled={unlocking}
+                    >
+                      {unlocking ? <Loader2 className="w-5 h-5 animate-spin"/> : <Unlock className="w-5 h-5" />}
+                      {unlocking ? "Sblocco in corso..." : "Sblocca Report Pro - €49"}
+                    </button>
+                    <button className="bg-white/5 hover:bg-white/10 text-white border border-white/10 px-8 py-4 rounded-xl font-medium">
+                       Vedi Esempio
+                    </button>
+                 </div>
+              </div>
+           )}
+
+           <div className={`p-8 lg:p-12 ${!isPremiumUnlocked ? 'opacity-30 pointer-events-none' : ''}`}>
+               <div className="flex items-center gap-3 mb-8">
+                  <Coins className="w-8 h-8 text-amber-500" />
+                  <h2 className="text-3xl font-bold text-white font-display">Business Plan Fotovoltaico (20Y)</h2>
+               </div>
+
+               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+                  {/* Financial KPIs */}
+                  <div className="space-y-4">
+                     <div className="glass-panel p-6 rounded-2xl border border-white/5">
+                        <div className="text-gray-400 text-sm mb-1">ROI Stimato</div>
+                        <div className="text-3xl font-bold text-green-500">{financialData?.roi}%</div>
+                        <div className="text-xs text-gray-500 mt-2">Ritorno investimento 20 anni</div>
+                     </div>
+                     <div className="glass-panel p-6 rounded-2xl border border-white/5">
+                        <div className="text-gray-400 text-sm mb-1">Payback Period</div>
+                        <div className="text-3xl font-bold text-white">{financialData?.paybackYear}</div>
+                        <div className="text-xs text-gray-500 mt-2">Anni per rientrare spese</div>
+                     </div>
+                     <div className="glass-panel p-6 rounded-2xl border border-white/5">
+                        <div className="text-gray-400 text-sm mb-1">Revenue Annuale</div>
+                        <div className="text-3xl font-bold text-white">€ {financialData?.annualRevenue.toLocaleString()}</div>
+                        <div className="text-xs text-gray-500 mt-2">Vendita energia stimata</div>
+                     </div>
+                  </div>
+
+                  {/* Cash Flow Chart */}
+                  <div className="lg:col-span-2 glass-panel p-6 rounded-2xl border border-white/5">
+                     <h4 className="text-white font-bold mb-6 flex items-center justify-between">
+                        <span>Analisi Cash Flow Cumulativo</span>
+                        <span className="text-xs font-normal text-gray-500">CAPEX: € -{financialData?.capex.toLocaleString()}</span>
+                     </h4>
+                     <div className="h-64 w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                           <BarChart data={financialData?.cashFlow}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" vertical={false} />
+                              <XAxis dataKey="year" stroke="#4b5563" tick={{fontSize: 10}} />
+                              <YAxis stroke="#4b5563" tick={{fontSize: 10}} />
+                              <Tooltip 
+                                contentStyle={{ backgroundColor: '#18181b', borderColor: '#3f3f46', color: '#fff' }}
+                                cursor={{fill: 'transparent'}}
+                              />
+                              <Bar dataKey="net" name="Netto Cumulativo" radius={[4, 4, 0, 0]}>
+                                {financialData?.cashFlow.map((entry: any, index: number) => (
+                                  <Cell key={`cell-${index}`} fill={entry.net > 0 ? '#22c55e' : '#ef4444'} />
+                                ))}
+                              </Bar>
+                           </BarChart>
+                        </ResponsiveContainer>
+                     </div>
+                  </div>
+               </div>
+               
+               {/* Downloads */}
+               <div className="border-t border-white/10 pt-8">
+                  <h3 className="text-white font-bold mb-6">Export Tecnico & Compliance</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                     <button className="flex items-center justify-between bg-white/5 hover:bg-white/10 border border-white/10 p-4 rounded-xl group transition-all">
+                        <div className="flex items-center gap-3">
+                           <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center text-blue-400">
+                              <FileSpreadsheet className="w-5 h-5" />
+                           </div>
+                           <div className="text-left">
+                              <div className="text-white font-medium">Export CSV Dati</div>
+                              <div className="text-xs text-gray-500">Excel / Numbers</div>
+                           </div>
+                        </div>
+                        <Download className="w-5 h-5 text-gray-500 group-hover:text-white" />
+                     </button>
+
+                     <button className="flex items-center justify-between bg-white/5 hover:bg-white/10 border border-white/10 p-4 rounded-xl group transition-all">
+                        <div className="flex items-center gap-3">
+                           <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center text-purple-400">
+                              <Layers className="w-5 h-5" />
+                           </div>
+                           <div className="text-left">
+                              <div className="text-white font-medium">File DXF (CAD)</div>
+                              <div className="text-xs text-gray-500">Planimetria vettoriale</div>
+                           </div>
+                        </div>
+                        <Download className="w-5 h-5 text-gray-500 group-hover:text-white" />
+                     </button>
+
+                     <button className="flex items-center justify-between bg-white/5 hover:bg-white/10 border border-white/10 p-4 rounded-xl group transition-all">
+                        <div className="flex items-center gap-3">
+                           <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center text-green-400">
+                              <ShieldCheck className="w-5 h-5" />
+                           </div>
+                           <div className="text-left">
+                              <div className="text-white font-medium">Certificato PAI</div>
+                              <div className="text-xs text-gray-500">Analisi idrogeologica</div>
+                           </div>
+                        </div>
+                        <Download className="w-5 h-5 text-gray-500 group-hover:text-white" />
+                     </button>
+                  </div>
+               </div>
+           </div>
+        </div>
+
       </div>
     </div>
   );
