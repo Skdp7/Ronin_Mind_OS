@@ -983,15 +983,15 @@ const HomePage = ({ onStartAnalysis }: { onStartAnalysis: () => void }) => (
               <span>La prima AI per il Land Banking</span>
             </div>
             
-            <h1 className="text-5xl md:text-7xl font-display font-bold text-white leading-[1.1] tracking-tight">
-              Decodifica il valore <br />
+            <h1 className="text-4xl md:text-6xl font-display font-bold text-white leading-[1.1] tracking-tight mb-6">
+              Decodifica il valore del tuo terreno. <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-primary-600">
-                del tuo terreno
+                Vendi a chi costruisce.
               </span>
             </h1>
             
-            <p className="text-xl text-gray-300 max-w-xl leading-relaxed">
-              Ottieni un'analisi scientifica istantanea su edificabilità, rischio idrogeologico e potenziale fotovoltaico.
+            <p className="text-lg md:text-xl text-gray-300 max-w-xl leading-relaxed mb-8">
+               Analisi AI istantanea su edificabilità e fotovoltaico. Connettiamo il tuo terreno direttamente con costruttori e fondi di investimento pronti ad acquistare.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
