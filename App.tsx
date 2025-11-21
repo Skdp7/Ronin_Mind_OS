@@ -864,8 +864,8 @@ const SearchWidget = ({ onSearch }: { onSearch: (mode: string) => void }) => {
                     <button
                         onClick={() => onSearch(activeTab)}
                         className={`w-full font-bold py-4 rounded-xl transition-all flex justify-center items-center gap-3 active:scale-95 mt-4 shadow-xl uppercase tracking-wide text-sm ${activeTab === 'buy' ? 'bg-white text-black hover:bg-gray-200' :
-                                activeTab === 'sell' ? 'bg-primary-600 text-white hover:bg-primary-500 shadow-primary-500/20' :
-                                    'bg-accent-600 text-white hover:bg-accent-500 shadow-accent-500/20'
+                            activeTab === 'sell' ? 'bg-primary-600 text-white hover:bg-primary-500 shadow-primary-500/20' :
+                                'bg-accent-600 text-white hover:bg-accent-500 shadow-accent-500/20'
                             }`}
                     >
                         {activeTab === 'buy' ? 'CERCA TERRENI' : activeTab === 'sell' ? 'VALUTA E MONETIZZA' : 'CALCOLA RENDITA'}
@@ -877,131 +877,7 @@ const SearchWidget = ({ onSearch }: { onSearch: (mode: string) => void }) => {
     );
 };
 
-const ValuePropositionSection = () => {
-    return (
-        <div className="py-32 bg-black relative overflow-hidden">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(34,197,94,0.05),transparent_40%)]" />
 
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-
-                <div className="text-center mb-20">
-                    <h2 className="text-4xl md:text-6xl font-display font-bold text-white mb-6 leading-tight">
-                        Il Vecchio Metodo <span className="text-gray-500 text-2xl align-middle mx-2">VS</span> <span className="text-primary-500">L'Innovazione AI</span>
-                    </h2>
-                    <p className="text-xl text-gray-400 max-w-3xl mx-auto">
-                        Abbiamo digitalizzato il processo di due diligence immobiliare. Risparmia il 98% dei costi e il 99% del tempo.
-                    </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-
-                    {/* OLD METHOD CARD - GLASS DARK */}
-                    <div className="glass-panel border border-white/5 p-8 rounded-3xl relative overflow-hidden group hover:border-white/10 transition-all duration-500 hover:shadow-xl hover:shadow-red-900/10">
-                        <div className="absolute top-0 right-0 bg-red-500/20 px-4 py-1 rounded-bl-xl text-red-400 text-xs font-bold font-mono tracking-wider">METODO TRADIZIONALE</div>
-
-                        {/* SPEED METER SLOW */}
-                        <div className="mb-8">
-                            <div className="flex items-center gap-3 mb-2">
-                                <Hourglass className="w-6 h-6 text-red-500 animate-pulse" />
-                                <h3 className="text-2xl font-bold text-white">30 Giorni</h3>
-                            </div>
-                            <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-                                <div className="h-full bg-red-500 w-[5%]"></div>
-                            </div>
-                        </div>
-
-                        <div className="space-y-6 relative z-10">
-                            <div className="flex justify-between items-center p-4 rounded-xl bg-white/5 border border-transparent hover:border-white/10 transition-all">
-                                <span className="text-gray-400">Geometra (Visure)</span>
-                                <span className="font-mono text-white">€ 350</span>
-                            </div>
-                            <div className="flex justify-between items-center p-4 rounded-xl bg-white/5 border border-transparent hover:border-white/10 transition-all">
-                                <span className="text-gray-400">Relazione Geologica</span>
-                                <span className="font-mono text-white">€ 800</span>
-                            </div>
-                            <div className="flex justify-between items-center p-4 rounded-xl bg-white/5 border border-transparent hover:border-white/10 transition-all">
-                                <span className="text-gray-400">Studio Fattibilità Arch.</span>
-                                <span className="font-mono text-white">€ 1.500</span>
-                            </div>
-                            <div className="flex justify-between items-center p-4 rounded-xl bg-white/5 border border-transparent hover:border-white/10 transition-all">
-                                <span className="text-gray-400">Business Plan</span>
-                                <span className="font-mono text-white">€ 600</span>
-                            </div>
-                        </div>
-
-                        {/* TOTAL HUD */}
-                        <div className="mt-8 pt-6 border-t border-white/10">
-                            <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-6 text-center group-hover:bg-red-500/20 transition-all">
-                                <div className="text-xs text-red-400 uppercase tracking-widest mb-1">Costo Totale Stimato</div>
-                                <div className="text-4xl font-bold text-red-500 font-mono">€ 3.250</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* NEW METHOD CARD - GLASS GREEN GLOW */}
-                    <div className="glass-panel border border-primary-500/30 p-8 rounded-3xl relative overflow-hidden group hover:border-primary-500/60 transition-all duration-500 hover:shadow-[0_0_50px_-10px_rgba(34,197,94,0.2)]">
-                        <div className="absolute top-0 right-0 bg-primary-500 px-4 py-1 rounded-bl-xl text-black text-xs font-bold font-mono tracking-wider">TERRENINVENDITA.AI</div>
-
-                        {/* SPEED METER FAST */}
-                        <div className="mb-8">
-                            <div className="flex items-center gap-3 mb-2">
-                                <ZapIcon className="w-6 h-6 text-primary-500 animate-bounce" />
-                                <h3 className="text-2xl font-bold text-white">12 Secondi</h3>
-                            </div>
-                            <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden relative">
-                                <div className="h-full bg-primary-500 w-full animate-scan"></div>
-                                <div className="absolute top-0 right-0 h-full w-full bg-gradient-to-r from-transparent to-primary-500 opacity-50 blur-sm"></div>
-                            </div>
-                        </div>
-
-                        <div className="space-y-6 relative z-10">
-                            <div className="flex justify-between items-center p-4 rounded-xl bg-primary-500/5 border border-primary-500/10 group-hover:bg-primary-500/10 transition-all">
-                                <div className="flex items-center gap-3">
-                                    <CheckCircle className="w-5 h-5 text-primary-500" />
-                                    <span className="text-gray-200">Dati Catastali & Urbanistici</span>
-                                </div>
-                                <span className="font-bold text-white">Incluso</span>
-                            </div>
-                            <div className="flex justify-between items-center p-4 rounded-xl bg-primary-500/5 border border-primary-500/10 group-hover:bg-primary-500/10 transition-all">
-                                <div className="flex items-center gap-3">
-                                    <CheckCircle className="w-5 h-5 text-primary-500" />
-                                    <span className="text-gray-200">Analisi Geologica AI</span>
-                                </div>
-                                <span className="font-bold text-white">Incluso</span>
-                            </div>
-                            <div className="flex justify-between items-center p-4 rounded-xl bg-primary-500/5 border border-primary-500/10 group-hover:bg-primary-500/10 transition-all">
-                                <div className="flex items-center gap-3">
-                                    <CheckCircle className="w-5 h-5 text-primary-500" />
-                                    <span className="text-gray-200">Export CAD Tecnico</span>
-                                </div>
-                                <span className="font-bold text-white">Incluso</span>
-                            </div>
-                            <div className="flex justify-between items-center p-4 rounded-xl bg-primary-500/5 border border-primary-500/10 group-hover:bg-primary-500/10 transition-all">
-                                <div className="flex items-center gap-3">
-                                    <CheckCircle className="w-5 h-5 text-primary-500" />
-                                    <span className="text-gray-200">Business Plan Bancabile</span>
-                                </div>
-                                <span className="font-bold text-white">Incluso</span>
-                            </div>
-                        </div>
-
-                        {/* TOTAL HUD */}
-                        <div className="mt-8 pt-6 border-t border-primary-500/20">
-                            <div className="bg-primary-500/10 border border-primary-500/30 rounded-2xl p-6 text-center group-hover:bg-primary-500/20 transition-all relative overflow-hidden">
-                                <div className="absolute inset-0 bg-primary-500/10 blur-xl animate-pulse"></div>
-                                <div className="relative z-10">
-                                    <div className="text-xs text-primary-400 uppercase tracking-widest mb-1">Costo Report Premium</div>
-                                    <div className="text-5xl font-bold text-primary-500 font-mono">€ 49</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-        </div>
-    );
-};
 
 // --- PAGES ---
 
@@ -2235,7 +2111,7 @@ function App() {
                         <HeroSection onStartAnalysis={handleSearchWidget} />
                         <AIQuerySection onNavigate={handleSearchWidget} />
                         <FeaturedSection />
-                        <ValuePropositionSection />
+
                     </>
                 )}
                 {currentPage === 'analysis' && <AnalysisPage initialMode={searchMode} />}
