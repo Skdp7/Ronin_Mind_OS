@@ -1,5 +1,6 @@
 {
   "name": "terreninvendita-ai",
+  "author": "Dario Scattarelli <dsgroupnyc@gmail.com>",
   "private": true,
   "version": "0.0.1",
   "type": "module",
