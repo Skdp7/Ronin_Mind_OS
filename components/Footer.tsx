@@ -17,7 +17,7 @@ const Footer: React.FC = () => {
               La prima piattaforma immobiliare in Europa guidata dall'Intelligenza Artificiale Generativa. Analizza, valuta e vendi terreni con precisione scientifica.
             </p>
           </div>
-          
+
           <div>
             <h4 className="text-white font-bold mb-4 font-display">Piattaforma</h4>
             <ul className="space-y-2 text-sm text-gray-500">
@@ -46,14 +46,14 @@ const Footer: React.FC = () => {
               <li className="hover:text-primary-400 cursor-pointer transition-colors">Cookie Policy</li>
             </ul>
             <div className="flex gap-4 mt-6">
-                <Twitter className="h-5 w-5 text-gray-500 hover:text-white cursor-pointer transition-colors" />
-                <Linkedin className="h-5 w-5 text-gray-500 hover:text-white cursor-pointer transition-colors" />
-                <Instagram className="h-5 w-5 text-gray-500 hover:text-white cursor-pointer transition-colors" />
+              <Twitter className="h-5 w-5 text-gray-500 hover:text-white cursor-pointer transition-colors" />
+              <Linkedin className="h-5 w-5 text-gray-500 hover:text-white cursor-pointer transition-colors" />
+              <Instagram className="h-5 w-5 text-gray-500 hover:text-white cursor-pointer transition-colors" />
             </div>
           </div>
         </div>
         <div className="border-t border-white/5 pt-8 text-center text-xs text-gray-600 font-mono">
-          © 2025 terreninvendita.ai - Silicon Valley Style Engineering. All rights reserved.
+          © 2025 terreninvendita.ai - Dseven Holding Srl. All rights reserved.
         </div>
       </div>
     </footer>
