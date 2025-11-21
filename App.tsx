@@ -1030,8 +1030,8 @@ const HeroSection = ({ onStartAnalysis }: { onStartAnalysis: (mode: string) => v
                     <span className="text-sm font-medium text-primary-100">La prima AI per il Land Banking</span>
                 </div>
                 
-                <h1 className="text-4xl md:text-6xl font-display font-bold text-white mb-6 leading-tight tracking-tight">
-                  Decodifica il valore del tuo terreno.
+                <h1 className="text-3xl md:text-5xl font-display font-bold text-white mb-6 leading-tight tracking-tight">
+                  L’AI che trova il terreno partendo da ciò che vuoi realizzare
                 </h1>
                 
                 <p className="text-xl text-gray-300 mb-10 max-w-xl leading-relaxed font-light">
