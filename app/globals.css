@@ -1,26 +1,60 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Ronin Color Palette */
+  --color-ronin-black: #0a0a0a;
+  --color-ronin-charcoal: #171717;
+  --color-ronin-gray: #262626;
+  --color-ronin-gray-light: #404040;
+  --color-ronin-white: #ededed;
+  --color-ronin-crimson: #dc2626;
+  --color-ronin-gold: #d4af37;
+
+  /* Base colors */
+  --color-background: #0a0a0a;
+  --color-foreground: #ededed;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  --background: #0a0a0a;
+  --foreground: #ededed;
 }
 
 body {
-  background: var(--background);
+  background: radial-gradient(ellipse at top, #171717 0%, #0a0a0a 100%);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Utility classes */
+.glass {
+  background-color: rgba(23, 23, 23, 0.4);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(38, 38, 38, 0.3);
+}
+
+.glass-hover {
+  background-color: rgba(23, 23, 23, 0.4);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(38, 38, 38, 0.3);
+  transition: all 0.3s;
+}
+
+.glass-hover:hover {
+  background-color: rgba(23, 23, 23, 0.6);
+  border-color: rgba(212, 175, 55, 0.3);
+}
+
+.glow-gold {
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
+}
+
+.glow-crimson {
+  box-shadow: 0 0 20px rgba(220, 38, 38, 0.3);
 }
