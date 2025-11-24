@@ -67,25 +67,25 @@ export function HeroSection() {
 
             <div className="relative z-10 max-w-5xl mx-auto text-center space-y-8">
                 <motion.div variants={itemVariants} className="space-y-4">
-                    <h1 className="text-7xl md:text-9xl font-bold tracking-tighter">
-                        <span className="bg-gradient-to-r from-[#ededed] via-[#d4af37] to-[#ededed] bg-clip-text text-transparent">
+                    <h1 className="text-7xl md:text-9xl font-bold tracking-tighter font-mono">
+                        <span className="text-white">
                             RONIN
                         </span>
                     </h1>
-                    <p className="text-2xl md:text-3xl text-[#404040] font-light tracking-wide">
+                    <p className="text-2xl md:text-3xl text-[#404040] font-light tracking-wide font-mono">
                         MIND_OS
                     </p>
                 </motion.div>
 
                 <motion.p
                     variants={itemVariants}
-                    className="text-xl md:text-2xl text-[#ededed]/80 max-w-2xl mx-auto font-light italic"
+                    className="text-xl md:text-2xl text-[#ededed]/80 max-w-2xl mx-auto font-light italic font-mono"
                 >
                     "A Ronin lives by discipline."
                 </motion.p>
 
                 <motion.div variants={itemVariants} className="pt-8">
-                    <p className="text-[#404040] mb-8 text-lg">
+                    <p className="text-[#404040] mb-8 text-lg font-mono">
                         Your personal AI-powered Operating System for discipline, self-mastery, and mental clarity.
                     </p>
                 </motion.div>
@@ -98,7 +98,7 @@ export function HeroSection() {
                         whileHover={{ scale: 1.05, boxShadow: "0 0 30px rgba(212, 175, 55, 0.5)" }}
                         whileTap={{ scale: 0.95 }}
                         className={cn(
-                            "px-8 py-4 rounded-lg font-semibold text-lg",
+                            "px-8 py-4 rounded-lg font-semibold text-lg font-mono",
                             "bg-gradient-to-r from-[#d4af37] to-[#dc2626]",
                             "text-[#0a0a0a]",
                             "transition-all duration-300"
@@ -111,7 +111,7 @@ export function HeroSection() {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         className={cn(
-                            "px-8 py-4 rounded-lg font-semibold text-lg",
+                            "px-8 py-4 rounded-lg font-semibold text-lg font-mono",
                             "glass-hover",
                             "text-[#ededed]"
                         )}
