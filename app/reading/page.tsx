@@ -1,7 +1,3 @@
 export default function ReadingPage() {
-    return (
-        <div className="p-8">
-            <h1 className="text-3xl font-bold">Reading Tracker Placeholder</h1>
-        </div>
-    );
+    return <div className="p-8 font-mono text-white">Reading Tracker Placeholder</div>;
 }

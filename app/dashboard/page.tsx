@@ -1,7 +1,3 @@
 export default function DashboardPage() {
-    return (
-        <div className="p-8">
-            <h1 className="text-3xl font-bold">Dashboard Placeholder</h1>
-        </div>
-    );
+    return <div className="p-8 font-mono text-white">Dashboard Placeholder</div>;
 }
