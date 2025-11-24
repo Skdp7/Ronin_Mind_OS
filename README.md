@@ -56,7 +56,20 @@ Ronin_Mind_OS will include:
 The vision is to build a digital discipline OS for personal transformation, empowering users to master their habits and mind.
 
 ## How to Contribute
-(Placeholder for contributors)
+
+Contributions are welcome.  
+Please open an issue or submit a pull request if you want to propose improvements, fix bugs, or add new modules to Ronin_Mind_OS.
+
+## Author
+
+**Dario.S — Founder of RONIN TECH**
+
+Follow the journey on X:  
+https://x.com/skdp7_
 
 ## License
-(Placeholder)
+
+This project is licensed under the MIT License.  
+You are free to use, modify and distribute this software as long as proper attribution is maintained.
+
+Ronin for life.
